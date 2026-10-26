@@ -1,41 +1,41 @@
 {
-  "alive": 286,
+  "alive": 337,
   "alive_by_protocol": {
-    "hysteria2": 9,
-    "trojan": 24,
-    "vless": 253
+    "hysteria2": 10,
+    "trojan": 29,
+    "vless": 298
   },
-  "candidates_after_cap": 803,
-  "capped_by_endpoint": 389,
+  "candidates_after_cap": 841,
+  "capped_by_endpoint": 563,
   "checks": {
     "hysteria2": "quic_v1_handshake_h3",
     "trojan": "tcp_connect",
     "vless": "tcp_connect"
   },
-  "duration_sec": 67.5,
-  "previous_total": 315,
-  "raw_links": 2812,
-  "reachable": 286,
-  "rejected_invalid": 90,
+  "duration_sec": 54.3,
+  "previous_total": 286,
+  "raw_links": 3261,
+  "reachable": 337,
+  "rejected_invalid": 89,
   "sources_total": 15,
   "sources_with_data": 15,
   "top_countries": {
-    "🇧🇬": 13,
-    "🇨🇦": 13,
-    "🇩🇪": 36,
-    "🇪🇪": 10,
-    "🇫🇮": 9,
+    "🇧🇬": 16,
+    "🇨🇦": 16,
+    "🇩🇪": 45,
+    "🇪🇪": 13,
+    "🇫🇮": 18,
     "🇫🇷": 14,
-    "🇬🇧": 15,
-    "🇳🇱": 14,
+    "🇬🇧": 16,
+    "🇭🇰": 6,
+    "🇳🇱": 15,
     "🇵🇱": 7,
     "🇷🇸": 6,
-    "🇷🇺": 77,
-    "🇸🇪": 5,
-    "🇸🇬": 9,
+    "🇷🇺": 86,
+    "🇸🇬": 11,
     "🇺🇸": 10,
-    "🌐": 27
+    "🌐": 28
   },
-  "unique_valid": 1192,
-  "updated_at": "2026-10-26T14:15:07+00:00"
+  "unique_valid": 1404,
+  "updated_at": "2026-10-26T14:31:28+00:00"
 }

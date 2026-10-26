@@ -1,4 +1,5 @@
 import base64
+import urllib.parse
 
 import collector as c
 
@@ -64,6 +65,12 @@ def test_rejects_invalid_uuid():
     assert c.parse_vpn_link("vless://not-a-uuid@1.2.3.4:443?security=tls") is None
 
 
+def test_rejects_plaintext_vless():
+    # Modern Xray-core refuses VLESS without TLS/Reality to public addresses.
+    assert c.parse_vpn_link(f"vless://{UUID}@1.2.3.4:443?encryption=none#node") is None
+    assert c.parse_vpn_link(f"vless://{UUID}@1.2.3.4:443?security=none#node") is None
+
+
 def test_rejects_reality_without_pbk():
     link = f"vless://{UUID}@1.2.3.4:443?security=reality&sni=example.com"
     assert c.parse_vpn_link(link) is None
@@ -102,6 +109,30 @@ def test_format_link_encodes_remark():
     assert "#" in formatted
     assert " " not in formatted
     assert formatted.split("#", 1)[1].startswith("%F0%9F%87%A9")
+
+
+def test_format_link_removes_insecure_and_pins_certificate():
+    link = (
+        f"vless://{UUID}@1.2.3.4:443?security=tls&sni=example.com"
+        "&insecure=1&allowInsecure=1&type=ws#node"
+    )
+    node = c.parse_vpn_link(link)
+    assert node is not None
+    node["tls_cert_sha256"] = "deadbeef"
+
+    formatted = c.format_link(node)
+    query = formatted.split("#", 1)[0].partition("?")[2]
+    params = dict(urllib.parse.parse_qsl(query))
+    assert "insecure" not in params
+    assert "allowInsecure" not in params
+    assert params["pcs"] == "deadbeef"
+
+
+def test_format_link_keeps_hysteria2_insecure():
+    node = c.parse_vpn_link("hysteria2://pass@example.com:443?sni=example.com&insecure=1#node")
+    assert node is not None
+    formatted = c.format_link(node)
+    assert "insecure=1" in formatted
 
 
 def test_extract_raw_links():

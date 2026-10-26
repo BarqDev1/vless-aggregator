@@ -46,7 +46,20 @@ def test_xray_trojan_ws_config():
     outbound = config["outbounds"][0]
     assert outbound["protocol"] == "trojan"
     assert outbound["streamSettings"]["wsSettings"]["path"] == "/ws"
-    assert outbound["streamSettings"]["tlsSettings"]["allowInsecure"] is True
+    assert "allowInsecure" not in outbound["streamSettings"]["tlsSettings"]
+
+
+def test_xray_tls_pinned_config():
+    node = c.parse_vpn_link(
+        "trojan://secret@example.com:8443?security=tls&sni=example.com#node"
+    )
+    assert node is not None
+    node["tls_cert_sha256"] = "abc123"
+    config = e2e.build_xray_config(node, 1080)
+    assert config is not None
+    tls = config["outbounds"][0]["streamSettings"]["tlsSettings"]
+    assert tls["pinnedPeerCertSha256"] == "abc123"
+    assert "allowInsecure" not in tls
 
 
 def test_singbox_hysteria2_config():

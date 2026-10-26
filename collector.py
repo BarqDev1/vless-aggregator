@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import binascii
+import hashlib
 import html
 import ipaddress
 import json
@@ -264,11 +265,17 @@ def parse_vpn_link(link: str) -> Optional[dict]:
 
     qs = urllib.parse.parse_qs(raw_query, keep_blank_values=True)
     sni = (qs.get("sni") or qs.get("host") or [""])[0].strip()
+    security = (qs.get("security") or [""])[0].lower()
+    pinned = (qs.get("pcs") or [""])[0].strip() if security == "tls" else ""
 
     if canonical == "vless":
         if not UUID_REGEX.match(userinfo):
             return None
-        if (qs.get("security") or [""])[0].lower() == "reality" and not (qs.get("pbk") or [""])[0]:
+        # New Xray-core refuses plaintext VLESS to public addresses, so only
+        # TLS or Reality nodes are usable in modern clients (INCY, v2rayN, ...).
+        if security not in ("tls", "reality"):
+            return None
+        if security == "reality" and not (qs.get("pbk") or [""])[0]:
             return None
     elif canonical == "trojan":
         if not userinfo:
@@ -288,11 +295,14 @@ def parse_vpn_link(link: str) -> Optional[dict]:
         "host": host,
         "port": port,
         "sni": sni,
+        "security": security,
         "flag": flag,
         "remark": remark or "🌐",
         "transport": "udp" if canonical == "hysteria2" else "tcp",
         "credential": userinfo,
         "query": qs,
+        "tls_mode": "pinned" if pinned else None,
+        "tls_cert_sha256": pinned or None,
         "dedup_key": key,
     }
 
@@ -374,6 +384,59 @@ async def _check_quic(node: dict, timeout: float) -> bool:
                 return True
     except Exception:
         return False
+
+
+async def inspect_tls(node: dict, timeout: float = 6.0) -> Tuple[Optional[str], Optional[str]]:
+    """Classifies a TLS node as CA-valid or self-signed (returns its cert hash).
+
+    Modern Xray-core removed `allowInsecure`, so subscriptions must either use
+    a CA-valid certificate or pin the leaf certificate with `pcs`.
+    """
+    if node.get("security") != "tls":
+        return None, None
+
+    sni = node.get("sni") or node["host"]
+
+    for attempt in range(2):
+        try:
+            context = ssl.create_default_context()
+            _, writer = await asyncio.wait_for(
+                asyncio.open_connection(node["host"], node["port"], ssl=context, server_hostname=sni),
+                timeout=timeout,
+            )
+            writer.close()
+            with suppress(Exception):
+                await asyncio.wait_for(writer.wait_closed(), timeout=1.0)
+            return "valid", None
+        except (ssl.SSLError, ssl.CertificateError):
+            break
+        except Exception:
+            if attempt == 0:
+                await asyncio.sleep(0.3)
+                continue
+            break
+
+    for attempt in range(2):
+        try:
+            context = ssl.create_default_context()
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+            _, writer = await asyncio.wait_for(
+                asyncio.open_connection(node["host"], node["port"], ssl=context, server_hostname=sni),
+                timeout=timeout,
+            )
+            ssl_object = writer.get_extra_info("ssl_object")
+            certificate = ssl_object.getpeercert(binary_form=True) if ssl_object else None
+            writer.close()
+            with suppress(Exception):
+                await asyncio.wait_for(writer.wait_closed(), timeout=1.0)
+            if certificate:
+                return "pinned", hashlib.sha256(certificate).hexdigest()
+        except Exception:
+            if attempt == 0:
+                await asyncio.sleep(0.3)
+                continue
+    return None, None
 
 
 async def verify_node(node: dict, semaphore: asyncio.Semaphore) -> Optional[float]:
@@ -541,9 +604,34 @@ async def fetch_source(session: aiohttp.ClientSession, url: str) -> List[str]:
 
 
 def format_link(node: dict) -> str:
-    """Rebuilds the link with a standardized, URL-encoded remark."""
+    """Rebuilds the link, removing deprecated TLS flags and adding `pcs`.
+
+    New Xray-core (and INCY v3.7.9+) reject `allowInsecure`/`insecure`:
+    - CA-valid TLS nodes need neither flag;
+    - self-signed TLS nodes are pinned with `pcs=<sha256>`;
+    - Reality works without insecure flags;
+    - Hysteria2 keeps its own `insecure` parameter.
+    """
     base_link = node["link"].partition("#")[0]
-    return f"{base_link}#{urllib.parse.quote(node['remark'], safe='')}"
+    scheme, _, rest = base_link.partition("://")
+    location, separator, query = rest.partition("?")
+    pairs = urllib.parse.parse_qsl(query, keep_blank_values=True) if separator else []
+
+    if node["scheme"] in ("vless", "trojan"):
+        pairs = [
+            (key, value)
+            for key, value in pairs
+            if key.lower() not in ("insecure", "allowinsecure", "pcs")
+        ]
+        if node.get("security") == "tls" and node.get("tls_cert_sha256"):
+            pairs.append(("pcs", node["tls_cert_sha256"]))
+    else:
+        pairs = [(key, value) for key, value in pairs if key.lower() != "allowinsecure"]
+
+    rebuilt = f"{scheme}://{location}"
+    if pairs:
+        rebuilt += "?" + urllib.parse.urlencode(pairs)
+    return f"{rebuilt}#{urllib.parse.quote(node['remark'], safe='')}"
 
 
 def read_previous_count(path: str) -> int:
@@ -917,6 +1005,31 @@ async def main() -> int:
     reachable = len(alive_nodes)
     logger.info(f"Protocol-level reachable nodes: {reachable} / {len(candidates)}")
 
+    tls_nodes = [
+        node
+        for node in alive_nodes
+        if node["scheme"] in ("vless", "trojan") and node.get("security") == "tls"
+    ]
+    tls_status = {"valid": 0, "pinned": 0, "failed": 0}
+    if tls_nodes:
+        logger.info(f"Inspecting TLS certificates ({len(tls_nodes)} nodes)...")
+        tls_checks = await asyncio.gather(*[inspect_tls(node) for node in tls_nodes])
+        tls_ids = {id(node) for node in tls_nodes}
+        kept_tls: List[dict] = []
+        for node, (mode, fingerprint) in zip(tls_nodes, tls_checks, strict=True):
+            node["tls_mode"] = mode
+            node["tls_cert_sha256"] = fingerprint
+            if mode is None:
+                tls_status["failed"] += 1
+                continue
+            tls_status[mode] += 1
+            kept_tls.append(node)
+        alive_nodes = [node for node in alive_nodes if id(node) not in tls_ids] + kept_tls
+        logger.info(
+            f"TLS certificates: CA-valid={tls_status['valid']}, "
+            f"pinned={tls_status['pinned']}, failed={tls_status['failed']}"
+        )
+
     e2e_status = {
         "enabled": E2E_VERIFY,
         "verified": 0,
@@ -1057,6 +1170,7 @@ async def main() -> int:
             "capped_by_domain": cap_counts["domain"],
             "rejected_invalid": rejected,
             "reachable": reachable,
+            "tls_inspection": tls_status,
             "e2e": e2e_status,
             "alive": len(alive_nodes),
             "alive_by_protocol": dict(sorted(alive_counts.items())),

@@ -69,8 +69,16 @@ https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/stats.json
 Один неподдерживаемый транспорт может остаться с protocol-level статусом — это видно в `stats.json`
 (`e2e.unsupported`).
 
-E2E-клиенты: **Xray-core v25.3.6** (пин специально: новые версии удалили `allowInsecure`, нужный для
-самоподписанных нод) и **sing-box v1.14.4**.
+E2E-клиенты: **Xray-core v26.10.21** и **sing-box v1.14.4**.
+Ссылки нормализуются под новое ядро Xray: `insecure`/`allowInsecure` удаляются, для самоподписанных TLS-нод
+добавляется `pcs=<sha256>` (pinned certificate), а plaintext-VLESS без TLS/Reality не публикуется.
+
+### Совместимость с Xray 26 / INCY 3.7.9+
+- `allowInsecure` и `insecure` в VLESS/Trojan больше не используются — новое ядро их не принимает.
+- TLS-ноды с валидным CA-сертификатом проверяются штатно.
+- Самоподписанные TLS-ноды получают `pcs=<sha256>` — официальный аналог `allowInsecure` в share-link.
+- VLESS без TLS/Reality отбрасывается: Xray 26 не запускает такой публичный outbound.
+- Hysteria2 сохраняет `insecure=1` — это параметр sing-box, а не Xray TLS.
 
 ---
 

@@ -66,6 +66,24 @@ def test_stats_match_exported_data():
     assert stats["alive_by_protocol"] == protocols
 
 
+def test_modern_xray_compatible_tls_links():
+    # Xray-core >= 26 rejects allowInsecure/insecure and plaintext VLESS.
+    for line in _lines(ALL):
+        node = c.parse_vpn_link(line)
+        if node["scheme"] not in ("vless", "trojan"):
+            continue
+        params = {key.lower() for key in node["query"]}
+        assert "insecure" not in params
+        assert "allowinsecure" not in params
+        if node["scheme"] == "vless":
+            assert node["security"] in ("tls", "reality")
+        if "pcs" in params:
+            assert all(
+                len(value) == 64 and all(ch in "0123456789abcdef" for ch in value)
+                for value in node["query"]["pcs"]
+            )
+
+
 def test_udp_uses_quic_check(monkeypatch):
     called = {}
 

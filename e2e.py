@@ -4,8 +4,8 @@ Protocol-level checks only prove that a port answers. This module starts a
 real client (Xray for VLESS/Trojan, sing-box for Hysteria2), routes an HTTP
 request through it and accepts the node only if the request succeeds.
 
-Xray is pinned to v25.3.6 because newer releases removed `allowInsecure`,
-which is required to test free nodes with self-signed / fake certificates.
+Xray is pinned to a modern v26 release: `allowInsecure` is gone, so TLS nodes
+are either CA-valid or pinned with `pinnedPeerCertSha256` (`pcs` in links).
 """
 
 from __future__ import annotations
@@ -70,7 +70,9 @@ def _xray_stream(node: dict) -> Optional[dict]:
     stream: Dict[str, object] = {"network": network, "security": security}
 
     if security == "tls":
-        tls: Dict[str, object] = {"serverName": _sni(node), "allowInsecure": True}
+        tls: Dict[str, object] = {"serverName": _sni(node)}
+        if node.get("tls_cert_sha256"):
+            tls["pinnedPeerCertSha256"] = node["tls_cert_sha256"]
         fingerprint = _q(node, "fp")
         if fingerprint:
             tls["fingerprint"] = fingerprint

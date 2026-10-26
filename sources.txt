@@ -1,0 +1,11 @@
+# Список ссылок-источников с VLESS ключами (по одной ссылке на строку)
+# Поддерживаются:
+# - raw ссылки на GitHub (начинаются с https://raw.githubusercontent.com/...)
+# - обычные URL подписок (текстовые или base64)
+# - строки, начинающиеся с #, игнорируются
+
+# Текущий проверенный источник с российскими белыми списками (VK, Kinopoisk и др.):
+https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt
+
+# Добавляйте сюда любые новые ссылки:
+# https://raw.githubusercontent.com/...

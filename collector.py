@@ -46,9 +46,9 @@ FLAG_REGEX = re.compile(r"[\U0001F1E6-\U0001F1FF]{2}")
 COUNTRY_CODE_REGEX = re.compile(
     r"(?:^|[\s\[\(_\-\|])([A-Z]{2})(?:[\s\]\)_0-9\-\|]|$)"
 )
-# VMess is explicitly excluded
+# VMess and pure Shadowsocks (blocked by TSPU in RU) are explicitly excluded
 SUPPORTED_PREFIXES = (
-    "vless://", "trojan://", "hysteria2://", "hy2://", "tuic://", "ss://"
+    "vless://", "trojan://", "hysteria2://", "hy2://"
 )
 
 

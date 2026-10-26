@@ -1,8 +1,7 @@
-name: Auto Update VLESS & Multi-Protocol
+name: Update VPN subscriptions
 
 on:
   schedule:
-    # Запуск каждый час
     - cron: '0 * * * *'
   workflow_dispatch:
   push:
@@ -10,37 +9,69 @@ on:
       - 'sources.txt'
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: vpn-aggregator-update
+  cancel-in-progress: false
 
 jobs:
-  update-configs:
+  test:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 10
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
 
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v5
+      - name: Set up Python 3.12
+        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
         with:
-          python-version: '3.10'
+          python-version: '3.12'
+          cache: 'pip'
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+        run: python -m pip install -r requirements.txt -r requirements-dev.txt
 
-      - name: Run Collector & Connectivity Check
+      - name: Lint
+        run: ruff check .
+
+      - name: Test
+        run: pytest
+
+  update:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Run collector
         run: python collector.py
 
-      - name: Commit and Push
+      - name: Validate generated subscriptions
+        run: pytest tests/test_outputs.py
+
+      - name: Commit and push
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add vless_universal.txt hysteria2.txt all_universal.txt
           if git diff --staged --quiet; then
-            echo "No changes to commit"
+            echo "No data changes to commit"
           else
+            git add stats.json
             git commit -m "Auto-update VPN nodes (VLESS, Hy2, Trojan) [skip ci]"
             git push
           fi

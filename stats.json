@@ -1,0 +1,41 @@
+{
+  "alive": 286,
+  "alive_by_protocol": {
+    "hysteria2": 9,
+    "trojan": 24,
+    "vless": 253
+  },
+  "candidates_after_cap": 803,
+  "capped_by_endpoint": 389,
+  "checks": {
+    "hysteria2": "quic_v1_handshake_h3",
+    "trojan": "tcp_connect",
+    "vless": "tcp_connect"
+  },
+  "duration_sec": 67.5,
+  "previous_total": 315,
+  "raw_links": 2812,
+  "reachable": 286,
+  "rejected_invalid": 90,
+  "sources_total": 15,
+  "sources_with_data": 15,
+  "top_countries": {
+    "🇧🇬": 13,
+    "🇨🇦": 13,
+    "🇩🇪": 36,
+    "🇪🇪": 10,
+    "🇫🇮": 9,
+    "🇫🇷": 14,
+    "🇬🇧": 15,
+    "🇳🇱": 14,
+    "🇵🇱": 7,
+    "🇷🇸": 6,
+    "🇷🇺": 77,
+    "🇸🇪": 5,
+    "🇸🇬": 9,
+    "🇺🇸": 10,
+    "🌐": 27
+  },
+  "unique_valid": 1192,
+  "updated_at": "2026-10-26T14:15:07+00:00"
+}

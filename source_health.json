@@ -2,24 +2,24 @@
   "sources": {
     "git+https://gitlab.com/igareck/vpn-configs-for-russia.git": {
       "consecutive_failures": 0,
-      "last_alive": 57,
-      "last_checked_at": "2026-10-26T21:26:37+00:00",
+      "last_alive": 56,
+      "last_checked_at": "2026-10-26T21:36:21+00:00",
       "last_raw": 1411,
       "last_unique": 290,
       "quarantined_until": null
     },
     "https://raw.githubusercontent.com/0xRadikal/Free-v2ray-Configs/main/protocols/hysteria2.txt": {
       "consecutive_failures": 0,
-      "last_alive": 85,
-      "last_checked_at": "2026-10-26T21:26:37+00:00",
-      "last_raw": 247,
-      "last_unique": 234,
+      "last_alive": 77,
+      "last_checked_at": "2026-10-26T21:36:21+00:00",
+      "last_raw": 179,
+      "last_unique": 173,
       "quarantined_until": null
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_FULL.txt": {
       "consecutive_failures": 0,
       "last_alive": 8,
-      "last_checked_at": "2026-10-26T21:26:37+00:00",
+      "last_checked_at": "2026-10-26T21:36:21+00:00",
       "last_raw": 20,
       "last_unique": 20,
       "quarantined_until": null
@@ -27,15 +27,15 @@
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_LITE.txt": {
       "consecutive_failures": 0,
       "last_alive": 8,
-      "last_checked_at": "2026-10-26T21:26:37+00:00",
+      "last_checked_at": "2026-10-26T21:36:21+00:00",
       "last_raw": 20,
       "last_unique": 20,
       "quarantined_until": null
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/26.1.txt": {
       "consecutive_failures": 0,
-      "last_alive": 2,
-      "last_checked_at": "2026-10-26T21:26:37+00:00",
+      "last_alive": 1,
+      "last_checked_at": "2026-10-26T21:36:21+00:00",
       "last_raw": 296,
       "last_unique": 293,
       "quarantined_until": null
@@ -43,7 +43,7 @@
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/30.txt": {
       "consecutive_failures": 0,
       "last_alive": 9,
-      "last_checked_at": "2026-10-26T21:26:37+00:00",
+      "last_checked_at": "2026-10-26T21:36:21+00:00",
       "last_raw": 86,
       "last_unique": 86,
       "quarantined_until": null
@@ -51,15 +51,15 @@
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/31.txt": {
       "consecutive_failures": 0,
       "last_alive": 9,
-      "last_checked_at": "2026-10-26T21:26:37+00:00",
+      "last_checked_at": "2026-10-26T21:36:21+00:00",
       "last_raw": 86,
       "last_unique": 86,
       "quarantined_until": null
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/32.1.txt": {
       "consecutive_failures": 0,
-      "last_alive": 19,
-      "last_checked_at": "2026-10-26T21:26:37+00:00",
+      "last_alive": 18,
+      "last_checked_at": "2026-10-26T21:36:21+00:00",
       "last_raw": 119,
       "last_unique": 119,
       "quarantined_until": null
@@ -98,16 +98,16 @@
     },
     "https://raw.githubusercontent.com/sakha1370/OpenRay/main/output/kind/hysteria2.txt": {
       "consecutive_failures": 0,
-      "last_alive": 11,
-      "last_checked_at": "2026-10-26T21:26:37+00:00",
-      "last_raw": 23,
-      "last_unique": 23,
+      "last_alive": 104,
+      "last_checked_at": "2026-10-26T21:36:21+00:00",
+      "last_raw": 301,
+      "last_unique": 294,
       "quarantined_until": null
     },
     "https://raw.githubusercontent.com/svinakraft-maker/FlareFeed/main/public/hysteria2.txt": {
       "consecutive_failures": 0,
-      "last_alive": 164,
-      "last_checked_at": "2026-10-26T21:26:37+00:00",
+      "last_alive": 165,
+      "last_checked_at": "2026-10-26T21:36:21+00:00",
       "last_raw": 345,
       "last_unique": 345,
       "quarantined_until": null
@@ -138,12 +138,12 @@
     },
     "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt": {
       "consecutive_failures": 0,
-      "last_alive": 12,
-      "last_checked_at": "2026-10-26T21:26:37+00:00",
+      "last_alive": 8,
+      "last_checked_at": "2026-10-26T21:36:21+00:00",
       "last_raw": 120,
       "last_unique": 120,
       "quarantined_until": null
     }
   },
-  "updated_at": "2026-10-26T21:26:37+00:00"
+  "updated_at": "2026-10-26T21:36:21+00:00"
 }

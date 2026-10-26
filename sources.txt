@@ -13,3 +13,7 @@ https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt
 # 3. artembsk — Мультипротокольные списки (VLESS + Hysteria 2 + Trojan):
 https://raw.githubusercontent.com/artembsk/vpn-configs-for-russia/main/WHITE-CIDR-RU-all.txt
 https://raw.githubusercontent.com/artembsk/vpn-configs-for-russia/main/Vless-Reality-White-Lists-Rus-Mobile.txt
+
+
+# 4
+https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_FULL.txt

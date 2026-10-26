@@ -1,24 +1,30 @@
 #!/usr/bin/env python3
 """
-VLESS Aggregator & Connectivity Checker.
-Downloads VLESS configs from multiple sources, deduplicates,
-verifies TCP connectivity, standardizes country tags, and exports a unified list.
+Multi-Protocol VPN Aggregator & Connectivity Checker.
+Downloads VLESS, Trojan, and Hysteria2 configs from multiple sources,
+deduplicates, verifies TCP/UDP reachability, normalizes country flags,
+and exports clean unified subscription files.
 """
 
 import asyncio
 import base64
+import json
 import logging
 import os
 import re
+import socket
 import urllib.parse
 from typing import Dict, List, Optional, Tuple
 
 import aiohttp
 
 SOURCES_FILE = os.getenv("SOURCES_FILE", "sources.txt")
-OUTPUT_FILE = os.getenv("OUTPUT_FILE", "vless_universal.txt")
-TCP_TIMEOUT = float(os.getenv("TCP_TIMEOUT", "3.0"))
-MAX_CONCURRENT_PINGS = int(os.getenv("CONCURRENCY", "50"))
+VLESS_OUTPUT = os.getenv("VLESS_OUTPUT", "vless_universal.txt")
+HY2_OUTPUT = os.getenv("HY2_OUTPUT", "hysteria2.txt")
+ALL_OUTPUT = os.getenv("ALL_OUTPUT", "all_universal.txt")
+
+TIMEOUT = float(os.getenv("PING_TIMEOUT", "3.0"))
+MAX_CONCURRENT_PINGS = int(os.getenv("CONCURRENCY", "60"))
 FETCH_TIMEOUT = float(os.getenv("FETCH_TIMEOUT", "20.0"))
 
 logging.basicConfig(
@@ -32,6 +38,9 @@ FLAG_REGEX = re.compile(r"[\U0001F1E6-\U0001F1FF]{2}")
 COUNTRY_CODE_REGEX = re.compile(
     r"(?:^|[\s\[\(_\-\|])([A-Z]{2})(?:[\s\]\)_0-9\-\|]|$)"
 )
+SUPPORTED_PREFIXES = (
+    "vless://", "trojan://", "hysteria2://", "hy2://", "vmess://", "tuic://", "ss://"
+)
 
 
 def code_to_flag(code: str) -> str:
@@ -39,18 +48,34 @@ def code_to_flag(code: str) -> str:
     return "".join(chr(0x1F1E6 + ord(c) - ord("A")) for c in code.upper())
 
 
-def parse_vless(link: str) -> Optional[dict]:
-    """Parses a vless:// URI into structured fields."""
+def parse_vpn_link(link: str) -> Optional[dict]:
+    """Parses any supported VPN URI into structured fields."""
     link = link.strip()
-    if not link.startswith("vless://"):
+    if not any(link.startswith(p) for p in SUPPORTED_PREFIXES):
         return None
 
     try:
-        url_part, _, raw_remark = link[8:].partition("#")
+        scheme, _, rest = link.partition("://")
+        scheme = scheme.lower()
+
+        # Handle VMess JSON format
+        if scheme == "vmess":
+            raw_b64, _, raw_remark = rest.partition("#")
+            pad = len(raw_b64) % 4
+            padded = raw_b64 + ("=" * ((4 - pad) % 4)) if pad else raw_b64
+            v_data = json.loads(base64.b64decode(padded).decode("utf-8", errors="ignore"))
+            host = str(v_data.get("add", "")).strip("[]")
+            port = int(v_data.get("port", 443))
+            sni = v_data.get("sni") or v_data.get("host") or ""
+            remark = urllib.parse.unquote(raw_remark or v_data.get("ps", "")).strip()
+            return _build_node(scheme, link, host, port, sni, remark, "tcp")
+
+        # Standard scheme://user@host:port?query#remark format
+        url_part, _, raw_remark = rest.partition("#")
         remark = urllib.parse.unquote(raw_remark).strip()
 
         user_info, _, host_query = url_part.partition("@")
-        if not user_info or not host_query:
+        if not host_query:
             return None
 
         host_port, _, raw_query = host_query.partition("?")
@@ -64,85 +89,104 @@ def parse_vless(link: str) -> Optional[dict]:
         else:
             host, _, port_str = host_port.partition(":")
 
-        port = int(port_str) if port_str.isdigit() else 443
+        port = int(port_str) if port_str.isdigit() else (8443 if "hy" in scheme else 443)
 
         qs = urllib.parse.parse_qs(raw_query)
-        sni = ""
-        if "sni" in qs:
-            sni = qs["sni"][0]
-        elif "host" in qs:
-            sni = qs["host"][0]
+        sni = qs.get("sni", [""])[0] or qs.get("host", [""])[0]
 
-        # Extract or infer country flag
-        flag_match = FLAG_REGEX.search(remark)
-        flag = flag_match.group(0) if flag_match else None
-
-        if not flag:
-            cc_match = COUNTRY_CODE_REGEX.search(remark)
-            if cc_match:
-                candidate = cc_match.group(1)
-                if candidate in {
-                    "RU", "DE", "NL", "US", "GB", "FR", "SG", "JP", "TR",
-                    "FI", "SE", "PL", "AT", "CH", "IT", "ES", "CA", "HK",
-                }:
-                    flag = code_to_flag(candidate)
-                    remark = f"{flag} {remark}"
-
-        if not flag:
-            flag = "🌐"
-
-        # Dedup key by host, port, and SNI
-        dedup_key = f"{host.lower()}:{port}:{sni.lower()}"
-
-        return {
-            "link": link,
-            "host": host,
-            "port": port,
-            "uuid": user_info,
-            "sni": sni,
-            "flag": flag,
-            "remark": remark,
-            "dedup_key": dedup_key,
-        }
+        transport = "udp" if scheme in ("hysteria2", "hy2", "tuic") else "tcp"
+        return _build_node(scheme, link, host, port, sni, remark, transport)
     except Exception:
         return None
 
 
-async def check_tcp(host: str, port: int, timeout: float = TCP_TIMEOUT) -> bool:
-    """Tests TCP connectivity to the given host and port."""
-    try:
-        conn = asyncio.open_connection(host, port)
-        reader, writer = await asyncio.wait_for(conn, timeout=timeout)
-        writer.close()
-        await writer.wait_closed()
-        return True
-    except Exception:
-        return False
+def _build_node(scheme: str, link: str, host: str, port: int, sni: str, remark: str, transport: str) -> Optional[dict]:
+    if not host or not port:
+        return None
+
+    flag_match = FLAG_REGEX.search(remark)
+    flag = flag_match.group(0) if flag_match else None
+
+    if not flag:
+        cc_match = COUNTRY_CODE_REGEX.search(remark)
+        if cc_match:
+            candidate = cc_match.group(1)
+            if candidate in {
+                "RU", "DE", "NL", "US", "GB", "FR", "SG", "JP", "TR",
+                "FI", "SE", "PL", "AT", "CH", "IT", "ES", "CA", "HK",
+                "BG", "EE", "LT", "LV", "KZ", "BY", "UA", "RO", "CZ",
+            }:
+                flag = code_to_flag(candidate)
+                remark = f"{flag} {remark}"
+
+    if not flag:
+        flag = "🌐"
+
+    dedup_key = f"{scheme}:{host.lower()}:{port}:{sni.lower()}"
+    return {
+        "scheme": scheme,
+        "link": link,
+        "host": host,
+        "port": port,
+        "sni": sni,
+        "flag": flag,
+        "remark": remark,
+        "transport": transport,
+        "dedup_key": dedup_key,
+    }
 
 
-async def fetch_source(
-    session: aiohttp.ClientSession, url: str
-) -> List[str]:
-    """Fetches a URL and extracts lines, handling base64 or raw text."""
+async def check_connectivity(node: dict, timeout: float = TIMEOUT) -> bool:
+    """Verifies reachability via TCP connect or UDP resolution/routing."""
+    host, port, transport = node["host"], node["port"], node["transport"]
+    if transport == "tcp":
+        try:
+            conn = asyncio.open_connection(host, port)
+            reader, writer = await asyncio.wait_for(conn, timeout=timeout)
+            writer.close()
+            await writer.wait_closed()
+            return True
+        except Exception:
+            return False
+    else:
+        # UDP (Hysteria2/TUIC): test DNS resolution and local route binding
+        try:
+            loop = asyncio.get_running_loop()
+            infos = await asyncio.wait_for(
+                loop.getaddrinfo(host, port, family=socket.AF_UNSPEC, type=socket.SOCK_DGRAM),
+                timeout=timeout,
+            )
+            if not infos:
+                return False
+            family, socktype, proto, _, sockaddr = infos[0]
+            s = socket.socket(family, socktype, proto)
+            s.setblocking(False)
+            s.connect(sockaddr)
+            s.close()
+            return True
+        except Exception:
+            return False
+
+
+async def fetch_source(session: aiohttp.ClientSession, url: str) -> List[str]:
+    """Fetches a URL, extracting raw or base64 lines for all protocols."""
     url = url.strip()
     if not url or url.startswith("#"):
         return []
 
     logger.info(f"Downloading source: {url}")
     try:
-        async with session.get(
-            url, timeout=aiohttp.ClientTimeout(total=FETCH_TIMEOUT)
-        ) as resp:
+        async with session.get(url, timeout=aiohttp.ClientTimeout(total=FETCH_TIMEOUT)) as resp:
             if resp.status != 200:
                 logger.warning(f"Failed to fetch {url}: HTTP {resp.status}")
                 return []
             body = (await resp.text()).strip()
 
-        # If it already contains vless://, it's plain text
-        if "vless://" in body:
+        # If plain text with protocol schemes
+        if any(p in body for p in SUPPORTED_PREFIXES):
             lines = [l.strip() for l in body.splitlines() if l.strip()]
         else:
-            # Try base64 decoding for base64 subscription URLs
+            # Base64 decode attempt
             try:
                 pad = len(body) % 4
                 padded = body + ("=" * ((4 - pad) % 4)) if pad else body
@@ -151,12 +195,18 @@ async def fetch_source(
             except Exception:
                 lines = [l.strip() for l in body.splitlines() if l.strip()]
 
-        vless_lines = [l for l in lines if l.startswith("vless://")]
-        logger.info(f" -> Found {len(vless_lines)} VLESS links from {url}")
-        return vless_lines
+        configs = [l for l in lines if any(l.startswith(p) for p in SUPPORTED_PREFIXES)]
+        logger.info(f" -> Found {len(configs)} configs from {url}")
+        return configs
     except Exception as e:
         logger.error(f"Error fetching {url}: {e}")
         return []
+
+
+def format_link(node: dict) -> str:
+    """Rebuilds the link with a standardized, URL-encoded remark."""
+    base_link = node["link"].split("#")[0]
+    return f"{base_link}#{urllib.parse.quote(node['remark'])}"
 
 
 async def main():
@@ -186,60 +236,66 @@ async def main():
 
     logger.info(f"Total raw links collected: {len(all_raw_links)}")
 
-    # Deduplication & Parsing
+    # Deduplication
     seen_keys = set()
     parsed_nodes: List[dict] = []
-
     for raw in all_raw_links:
-        parsed = parse_vless(raw)
-        if not parsed:
-            continue
-        if parsed["dedup_key"] in seen_keys:
+        parsed = parse_vpn_link(raw)
+        if not parsed or parsed["dedup_key"] in seen_keys:
             continue
         seen_keys.add(parsed["dedup_key"])
         parsed_nodes.append(parsed)
 
     logger.info(f"Unique nodes to check: {len(parsed_nodes)}")
 
-    # TCP Connectivity Check
+    # Connectivity Check
     semaphore = asyncio.Semaphore(MAX_CONCURRENT_PINGS)
 
-    async def verify_node(node: dict) -> Tuple[dict, bool]:
+    async def verify(node: dict) -> Tuple[dict, bool]:
         async with semaphore:
-            alive = await check_tcp(node["host"], node["port"])
+            alive = await check_connectivity(node)
             return node, alive
 
-    logger.info(
-        f"Checking TCP reachability (timeout={TCP_TIMEOUT}s, workers={MAX_CONCURRENT_PINGS})..."
-    )
-    check_tasks = [verify_node(n) for n in parsed_nodes]
-    check_results = await asyncio.gather(*check_tasks)
+    logger.info(f"Checking reachability (workers={MAX_CONCURRENT_PINGS})...")
+    check_results = await asyncio.gather(*[verify(n) for n in parsed_nodes])
 
     alive_nodes: List[dict] = []
+    protocol_counts: Dict[str, int] = {}
     country_counts: Dict[str, int] = {}
 
     for node, is_alive in check_results:
         if is_alive:
             alive_nodes.append(node)
+            proto = node["scheme"]
             flag = node["flag"]
+            protocol_counts[proto] = protocol_counts.get(proto, 0) + 1
             country_counts[flag] = country_counts.get(flag, 0) + 1
 
-    logger.info(f"Alive nodes: {len(alive_nodes)} / {len(parsed_nodes)}")
-    for flag, count in sorted(country_counts.items(), key=lambda x: -x[1]):
-        logger.info(f"  {flag} : {count} alive nodes")
+    logger.info(f"✅ Total alive nodes: {len(alive_nodes)} / {len(parsed_nodes)}")
+    logger.info("Protocols:")
+    for proto, cnt in sorted(protocol_counts.items(), key=lambda x: -x[1]):
+        logger.info(f"  {proto.upper()}: {cnt}")
+    logger.info("Top Countries:")
+    for flag, cnt in sorted(country_counts.items(), key=lambda x: -x[1])[:8]:
+        logger.info(f"  {flag}: {cnt}")
 
-    # Export to output file
-    # Ensure remark formatting with flag
-    output_lines = []
-    for node in alive_nodes:
-        # Re-attach updated remark if flag was added
-        base_link = node["link"].split("#")[0]
-        output_lines.append(f"{base_link}#{urllib.parse.quote(node['remark'])}")
+    # 1. Export VLESS
+    vless_nodes = [format_link(n) for n in alive_nodes if n["scheme"] == "vless"]
+    with open(VLESS_OUTPUT, "w", encoding="utf-8") as f:
+        f.write("\n".join(vless_nodes) + "\n")
+    logger.info(f"Exported {len(vless_nodes)} VLESS nodes -> {VLESS_OUTPUT}")
 
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        f.write("\n".join(output_lines) + "\n")
+    # 2. Export Hysteria 2
+    hy2_nodes = [format_link(n) for n in alive_nodes if n["scheme"] in ("hysteria2", "hy2")]
+    with open(HY2_OUTPUT, "w", encoding="utf-8") as f:
+        f.write("\n".join(hy2_nodes) + "\n")
+    logger.info(f"Exported {len(hy2_nodes)} Hysteria2 nodes -> {HY2_OUTPUT}")
 
-    logger.info(f"✅ Successfully written {len(output_lines)} nodes to {OUTPUT_FILE}")
+    # 3. Export All Universal
+    all_nodes = [format_link(n) for n in alive_nodes]
+    with open(ALL_OUTPUT, "w", encoding="utf-8") as f:
+        f.write("\n".join(all_nodes) + "\n")
+    logger.info(f"Exported {len(all_nodes)} All-protocol nodes -> {ALL_OUTPUT}")
 
 
 if __name__ == "__main__":

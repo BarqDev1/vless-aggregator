@@ -1,4 +1,4 @@
-name: Auto Update VLESS
+name: Auto Update VLESS & Multi-Protocol
 
 on:
   schedule:
@@ -30,17 +30,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run Collector & Ping Check
+      - name: Run Collector & Connectivity Check
         run: python collector.py
 
       - name: Commit and Push
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add vless_universal.txt
+          git add vless_universal.txt hysteria2.txt all_universal.txt
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "Auto-update VLESS nodes [skip ci]"
+            git commit -m "Auto-update VPN nodes (VLESS, Hy2, Trojan) [skip ci]"
             git push
           fi

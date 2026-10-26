@@ -85,19 +85,32 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add vless_universal.txt hysteria2.txt all_universal.txt
-          if git diff --staged --quiet; then
-            if ! git diff --quiet -- source_health.json; then
-              git add source_health.json
-              git commit -m "Update source health [skip ci]"
-              git push
+          mkdir -p /tmp/generated
+          cp vless_universal.txt hysteria2.txt all_universal.txt stats.json source_health.json /tmp/generated/
+
+          push_generated() {
+            git fetch -q origin main
+            git reset --hard -q FETCH_HEAD
+            cp /tmp/generated/* .
+            git add vless_universal.txt hysteria2.txt all_universal.txt
+            if git diff --staged --quiet; then
+              if ! git diff --quiet -- source_health.json; then
+                git add source_health.json
+                git commit -m "Update source health [skip ci]"
+                git push
+              else
+                echo "No changes to commit"
+              fi
             else
-              echo "No changes to commit"
+              git add stats.json source_health.json
+              git commit -m "Auto-update VPN nodes (VLESS, Hy2, Trojan) [skip ci]"
+              git push
             fi
-          else
-            git add stats.json source_health.json
-            git commit -m "Auto-update VPN nodes (VLESS, Hy2, Trojan) [skip ci]"
-            git push
+          }
+
+          if ! push_generated; then
+            echo "Push race detected, retrying with a fresh base..."
+            push_generated
           fi
 
   alert:
@@ -107,6 +120,8 @@ jobs:
     timeout-minutes: 5
     permissions:
       issues: write
+    env:
+      GH_REPO: ${{ github.repository }}
     steps:
       - name: Create or update alert issue
         env:

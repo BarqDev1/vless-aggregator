@@ -33,10 +33,12 @@ import tempfile
 import time
 import urllib.parse
 from contextlib import suppress
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Iterable, List, Optional, Tuple
 
 import aiohttp
+
+import e2e
 
 try:  # Hysteria2 runs over QUIC; without aioquic we cannot check it honestly.
     from aioquic.asyncio.client import connect as quic_connect
@@ -54,6 +56,7 @@ VLESS_OUTPUT = os.getenv("VLESS_OUTPUT", "vless_universal.txt")
 HY2_OUTPUT = os.getenv("HY2_OUTPUT", "hysteria2.txt")
 ALL_OUTPUT = os.getenv("ALL_OUTPUT", "all_universal.txt")
 STATS_OUTPUT = os.getenv("STATS_OUTPUT", "stats.json")
+SOURCE_HEALTH_FILE = os.getenv("SOURCE_HEALTH_FILE", "source_health.json")
 
 TIMEOUT = float(os.getenv("PING_TIMEOUT", "3.0"))
 QUIC_TIMEOUT = float(os.getenv("QUIC_TIMEOUT", "5.0"))
@@ -68,7 +71,21 @@ MAX_GIT_FILES = int(os.getenv("MAX_GIT_FILES", "2000"))
 MIN_ALIVE = int(os.getenv("MIN_ALIVE", "10"))
 MAX_DROP_RATIO = float(os.getenv("MAX_DROP_RATIO", "0.5"))
 MAX_PER_ENDPOINT = max(1, int(os.getenv("MAX_PER_ENDPOINT", "3")))
+MAX_PER_SUBNET = max(1, int(os.getenv("MAX_PER_SUBNET", "3")))
+MAX_PER_DOMAIN = max(1, int(os.getenv("MAX_PER_DOMAIN", "10")))
 MAX_REMARK_LEN = int(os.getenv("MAX_REMARK_LEN", "120"))
+
+PROTOCOL_MIN_ALIVE = max(1, int(os.getenv("PROTOCOL_MIN_ALIVE", "5")))
+PROTOCOL_MAX_DROP = float(os.getenv("PROTOCOL_MAX_DROP", "0.7"))
+
+SOURCE_FAILURE_THRESHOLD = max(1, int(os.getenv("SOURCE_FAILURE_THRESHOLD", "3")))
+SOURCE_QUARANTINE_HOURS = float(os.getenv("SOURCE_QUARANTINE_HOURS", "24"))
+
+E2E_VERIFY = os.getenv("E2E_VERIFY", "0").strip().lower() in {"1", "true", "yes", "on"}
+E2E_CONCURRENCY = max(1, int(os.getenv("E2E_CONCURRENCY", "6")))
+E2E_TIMEOUT = float(os.getenv("E2E_TIMEOUT", "7.0"))
+XRAY_BIN = os.getenv("XRAY_BIN", "xray")
+SING_BOX_BIN = os.getenv("SING_BOX_BIN", "sing-box")
 
 DEFAULT_HEADERS = {
     "User-Agent": (
@@ -312,15 +329,10 @@ def _dedup_key(
     )
 
 
-async def check_connectivity(node: dict, timeout: Optional[float] = None) -> bool:
-    """Checks protocol-level reachability of a single node (one attempt)."""
-    host, port = node["host"], node["port"]
-    if node["transport"] == "udp":
-        return await _check_quic(node, timeout if timeout is not None else QUIC_TIMEOUT)
-
+async def _check_tcp(node: dict, timeout: float) -> bool:
     try:
         _, writer = await asyncio.wait_for(
-            asyncio.open_connection(host, port), timeout=timeout or TIMEOUT
+            asyncio.open_connection(node["host"], node["port"]), timeout=timeout
         )
         writer.close()
         with suppress(Exception):
@@ -328,6 +340,23 @@ async def check_connectivity(node: dict, timeout: Optional[float] = None) -> boo
         return True
     except Exception:
         return False
+
+
+async def check_connectivity(node: dict, timeout: Optional[float] = None) -> bool:
+    """Checks protocol-level reachability of a single node (one attempt)."""
+    return await probe_node(node, timeout) is not None
+
+
+async def probe_node(node: dict, timeout: Optional[float] = None) -> Optional[float]:
+    """Returns handshake latency in milliseconds when the node answers."""
+    started = time.perf_counter()
+    if node["transport"] == "udp":
+        alive = await _check_quic(node, timeout if timeout is not None else QUIC_TIMEOUT)
+    else:
+        alive = await _check_tcp(node, timeout if timeout is not None else TIMEOUT)
+    if not alive:
+        return None
+    return round((time.perf_counter() - started) * 1000, 1)
 
 
 async def _check_quic(node: dict, timeout: float) -> bool:
@@ -347,15 +376,17 @@ async def _check_quic(node: dict, timeout: float) -> bool:
         return False
 
 
-async def verify_node(node: dict, semaphore: asyncio.Semaphore) -> bool:
+async def verify_node(node: dict, semaphore: asyncio.Semaphore) -> Optional[float]:
     """Checks a node with retries, limited by the shared semaphore."""
     async with semaphore:
         for attempt in range(1, CHECK_ATTEMPTS + 1):
-            if await check_connectivity(node):
-                return True
+            latency = await probe_node(node)
+            if latency is not None:
+                node["latency_ms"] = latency
+                return latency
             if attempt < CHECK_ATTEMPTS:
                 await asyncio.sleep(0.4 * attempt)
-        return False
+        return None
 
 
 def _clean_git_url(repo_url: str) -> str:
@@ -523,15 +554,50 @@ def read_previous_count(path: str) -> int:
         return 0
 
 
-def enforce_guard(alive: int, previous: int, min_alive: int = MIN_ALIVE, max_drop: float = MAX_DROP_RATIO) -> None:
-    """Refuses to publish an empty or collapsed subscription."""
+def load_previous_stats(path: str) -> dict:
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except (FileNotFoundError, ValueError, OSError):
+        return {}
+
+
+def enforce_guard(
+    alive: int,
+    previous: int,
+    min_alive: int = MIN_ALIVE,
+    max_drop: float = MAX_DROP_RATIO,
+    protocol_counts: Optional[Dict[str, int]] = None,
+    previous_protocols: Optional[Dict[str, int]] = None,
+    protocol_min: int = PROTOCOL_MIN_ALIVE,
+    protocol_max_drop: float = PROTOCOL_MAX_DROP,
+    allow_baseline_reset: bool = False,
+) -> None:
+    """Refuses to publish an empty, collapsed or protocol-degraded subscription."""
     if alive < min_alive:
         raise GuardError(f"only {alive} alive nodes (< MIN_ALIVE={min_alive})")
+
+    if allow_baseline_reset:
+        return
+
     if previous and alive < previous * (1 - max_drop):
         raise GuardError(
             f"alive nodes dropped from {previous} to {alive} "
             f"(> {int(max_drop * 100)}% loss)"
         )
+
+    for protocol, previous_count in (previous_protocols or {}).items():
+        if previous_count < protocol_min:
+            continue
+        current = (protocol_counts or {}).get(protocol, 0)
+        if current == 0:
+            raise GuardError(f"{protocol} disappeared completely (was {previous_count})")
+        if current < previous_count * (1 - protocol_max_drop):
+            raise GuardError(
+                f"{protocol} dropped from {previous_count} to {current} "
+                f"(> {int(protocol_max_drop * 100)}% loss)"
+            )
 
 
 def cap_per_endpoint(nodes: List[dict], limit: int = MAX_PER_ENDPOINT) -> List[dict]:
@@ -545,6 +611,168 @@ def cap_per_endpoint(nodes: List[dict], limit: int = MAX_PER_ENDPOINT) -> List[d
         counts[endpoint] = counts.get(endpoint, 0) + 1
         capped.append(node)
     return capped
+
+
+MULTI_LABEL_SUFFIXES = {
+    "co.uk", "org.uk", "ac.uk", "com.au", "net.au", "org.au", "co.jp", "ne.jp",
+    "or.jp", "co.kr", "or.kr", "com.br", "com.tr", "co.in", "com.cn", "com.tw",
+    "com.sg", "co.id", "co.nz", "co.za", "com.mx", "com.ar", "com.hk", "com.my",
+    "com.ph", "com.vn", "co.th",
+}
+
+
+def _subnet_key(node: dict) -> Optional[str]:
+    try:
+        address = ipaddress.ip_address(node["host"])
+    except ValueError:
+        return None
+    prefix = 24 if address.version == 4 else 48
+    return str(ipaddress.ip_network(f"{address}/{prefix}", strict=False))
+
+
+def _domain_key(node: dict) -> Optional[str]:
+    host = node["host"].lower().rstrip(".")
+    try:
+        ipaddress.ip_address(host)
+        return None
+    except ValueError:
+        pass
+    labels = host.split(".")
+    if len(labels) < 2:
+        return host
+    if len(labels) >= 3 and ".".join(labels[-2:]) in MULTI_LABEL_SUFFIXES:
+        return ".".join(labels[-3:])
+    return ".".join(labels[-2:])
+
+
+def _cap_by_key(nodes: List[dict], key_fn, limit: int) -> Tuple[List[dict], int]:
+    kept: List[dict] = []
+    counts: Dict[str, int] = {}
+    for node in nodes:
+        key = key_fn(node)
+        if key is None:
+            kept.append(node)
+            continue
+        if counts.get(key, 0) >= limit:
+            continue
+        counts[key] = counts.get(key, 0) + 1
+        kept.append(node)
+    return kept, len(nodes) - len(kept)
+
+
+def cap_for_diversity(nodes: List[dict]) -> Tuple[List[dict], Dict[str, int]]:
+    """Limits repeated endpoints, subnets and registrable domains."""
+    kept, endpoint_removed = _cap_by_key(
+        nodes,
+        lambda n: (n["scheme"], n["host"].lower(), n["port"], n["sni"].lower()),
+        MAX_PER_ENDPOINT,
+    )
+    kept, diversity = cap_diversity(kept)
+    return kept, {"endpoint": endpoint_removed, **diversity}
+
+
+def cap_diversity(nodes: List[dict]) -> Tuple[List[dict], Dict[str, int]]:
+    """Limits repeated subnets and registrable domains after verification."""
+    kept, subnet_removed = _cap_by_key(nodes, _subnet_key, MAX_PER_SUBNET)
+    kept, domain_removed = _cap_by_key(kept, _domain_key, MAX_PER_DOMAIN)
+    return kept, {"subnet": subnet_removed, "domain": domain_removed}
+
+
+def load_source_health(path: str) -> dict:
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+        if isinstance(data, dict) and isinstance(data.get("sources"), dict):
+            return data
+    except (FileNotFoundError, ValueError, OSError):
+        pass
+    return {"updated_at": None, "sources": {}}
+
+
+def _parse_datetime(value: object) -> Optional[datetime]:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+
+
+def select_active_sources(urls: List[str], health: dict, now: datetime) -> Tuple[List[str], List[str]]:
+    active: List[str] = []
+    skipped: List[str] = []
+    for url in urls:
+        entry = health.get("sources", {}).get(url, {})
+        until = _parse_datetime(entry.get("quarantined_until"))
+        if until and until > now:
+            skipped.append(url)
+        else:
+            active.append(url)
+    return active, skipped
+
+
+def update_source_health(health: dict, urls: List[str], source_stats: Dict[str, dict], now: datetime) -> dict:
+    """Updates consecutive failure counters and quarantines useless sources."""
+    old_sources = health.get("sources", {})
+    sources: Dict[str, dict] = {}
+    for url in urls:
+        old = old_sources.get(url, {})
+        stat = source_stats.get(url, {})
+        if stat.get("active") is False:
+            sources[url] = old
+            continue
+
+        failures = int(old.get("consecutive_failures", 0))
+        raw = int(stat.get("raw", 0))
+        unique = int(stat.get("unique", 0))
+        alive = int(stat.get("alive", 0))
+
+        if alive > 0:
+            failures = 0
+            quarantined_until = None
+        else:
+            failures += 1
+            quarantined_until = old.get("quarantined_until")
+            if failures >= SOURCE_FAILURE_THRESHOLD:
+                quarantined_until = (now + timedelta(hours=SOURCE_QUARANTINE_HOURS)).isoformat(
+                    timespec="seconds"
+                )
+
+        sources[url] = {
+            "consecutive_failures": failures,
+            "last_raw": raw,
+            "last_unique": unique,
+            "last_alive": alive,
+            "last_checked_at": now.isoformat(timespec="seconds"),
+            "quarantined_until": quarantined_until,
+        }
+
+    return {"updated_at": now.isoformat(timespec="seconds"), "sources": sources}
+
+
+def _percentile(values: List[float], quantile: float) -> Optional[float]:
+    if not values:
+        return None
+    ordered = sorted(values)
+    index = min(len(ordered) - 1, max(0, round((quantile / 100) * (len(ordered) - 1))))
+    return round(ordered[index], 1)
+
+
+def latency_summary(nodes: List[dict]) -> Dict[str, float]:
+    values = [
+        node["e2e_ms"] if node.get("e2e_ms") is not None else node.get("latency_ms")
+        for node in nodes
+    ]
+    values = [value for value in values if value is not None]
+    if not values:
+        return {}
+    return {
+        "p50": _percentile(values, 50),
+        "p90": _percentile(values, 90),
+        "min": round(min(values), 1),
+        "max": round(max(values), 1),
+    }
 
 
 def write_atomic(path: str, lines: Iterable[str]) -> None:
@@ -578,97 +806,230 @@ def _load_sources(path: str) -> List[str]:
 
 async def main() -> int:
     started = time.monotonic()
+    now = datetime.now(timezone.utc)
+
     source_urls = _load_sources(SOURCES_FILE)
     if not source_urls:
         logger.error("No usable sources found.")
         return 2
 
+    xray_bin, sing_box_bin = XRAY_BIN, SING_BOX_BIN
+    if E2E_VERIFY:
+        try:
+            xray_bin, sing_box_bin = e2e.ensure_binaries(XRAY_BIN, SING_BOX_BIN)
+        except e2e.E2ERuntimeError as exc:
+            logger.error(f"E2E verification is enabled but unusable: {exc}")
+            return 2
+
     if not HAS_AIOQUIC:
         logger.error("aioquic is not installed: Hysteria2 nodes cannot be verified and will be dropped.")
-    logger.info(f"Loaded {len(source_urls)} sources to process.")
+
+    health = load_source_health(SOURCE_HEALTH_FILE)
+    active_urls, skipped_urls = select_active_sources(source_urls, health, now)
+    if not active_urls:
+        logger.warning("All sources are quarantined; retrying all sources once.")
+        active_urls = list(source_urls)
+        skipped_urls = []
+    active_set = set(active_urls)
+    logger.info(
+        f"Loaded {len(source_urls)} sources: {len(active_urls)} active, "
+        f"{len(skipped_urls)} quarantined."
+    )
 
     fetch_sem = asyncio.Semaphore(8)
-    all_raw_links: List[str] = []
-    fetched_ok = 0
-
     async with aiohttp.ClientSession(headers=DEFAULT_HEADERS) as session:
-        async def fetch_limited(url: str) -> List[str]:
+        async def fetch_limited(url: str) -> Tuple[str, List[str]]:
             async with fetch_sem:
-                return await fetch_source(session, url)
+                return url, await fetch_source(session, url)
 
-        results = await asyncio.gather(*[fetch_limited(u) for u in source_urls])
-    for result in results:
-        if result:
+        results = await asyncio.gather(*[fetch_limited(url) for url in active_urls])
+
+    raw_by_source: Dict[str, int] = {url: 0 for url in source_urls}
+    fetched_ok = 0
+    for url, links in results:
+        raw_by_source[url] = len(links)
+        if links:
             fetched_ok += 1
-            all_raw_links.extend(result)
 
-    logger.info(f"Total raw links collected: {len(all_raw_links)} (sources with data: {fetched_ok})")
-    if not all_raw_links:
+    raw_total = sum(raw_by_source.values())
+    logger.info(f"Total raw links collected: {raw_total} (sources with data: {fetched_ok})")
+    if not raw_total:
         logger.error("No links collected from any source; keeping previous files.")
         return 2
 
-    seen_keys = set()
-    parsed_nodes: List[dict] = []
+    by_key: Dict[str, dict] = {}
     rejected = 0
-    for raw in all_raw_links:
-        parsed = parse_vpn_link(raw)
-        if not parsed or parsed["dedup_key"] in seen_keys:
+    for url, links in results:
+        for raw in links:
+            parsed = parse_vpn_link(raw)
             if not parsed:
                 rejected += 1
-            continue
-        seen_keys.add(parsed["dedup_key"])
-        parsed_nodes.append(parsed)
+                continue
+            existing = by_key.get(parsed["dedup_key"])
+            if existing:
+                existing["sources"].add(url)
+                continue
+            parsed["sources"] = {url}
+            parsed["latency_ms"] = None
+            parsed["e2e"] = "disabled"
+            by_key[parsed["dedup_key"]] = parsed
 
+    parsed_nodes = list(by_key.values())
     logger.info(f"Unique valid nodes: {len(parsed_nodes)} (rejected invalid: {rejected})")
     if not parsed_nodes:
         logger.error("No valid nodes parsed; keeping previous files.")
         return 2
 
+    unique_by_source: Dict[str, int] = {url: 0 for url in source_urls}
+    for node in parsed_nodes:
+        for url in node["sources"]:
+            unique_by_source[url] = unique_by_source.get(url, 0) + 1
+
     candidates = cap_per_endpoint(parsed_nodes)
-    capped = len(parsed_nodes) - len(candidates)
+    cap_counts = {
+        "endpoint": len(parsed_nodes) - len(candidates),
+        "subnet": 0,
+        "domain": 0,
+    }
     logger.info(
         f"Candidates after endpoint cap: {len(candidates)} "
-        f"(skipped {capped} duplicate endpoints, MAX_PER_ENDPOINT={MAX_PER_ENDPOINT})"
+        f"(removed endpoint duplicates: {cap_counts['endpoint']})"
     )
 
-    protocol_counts: Dict[str, int] = {}
+    candidate_protocols: Dict[str, int] = {}
     for node in candidates:
-        protocol_counts[node["scheme"]] = protocol_counts.get(node["scheme"], 0) + 1
-    logger.info("Candidate protocols: " + ", ".join(f"{k.upper()}={v}" for k, v in sorted(protocol_counts.items())))
+        candidate_protocols[node["scheme"]] = candidate_protocols.get(node["scheme"], 0) + 1
+    logger.info(
+        "Candidate protocols: "
+        + ", ".join(f"{key.upper()}={value}" for key, value in sorted(candidate_protocols.items()))
+    )
 
     semaphore = asyncio.Semaphore(MAX_CONCURRENT_PINGS)
     logger.info(f"Checking reachability (workers={MAX_CONCURRENT_PINGS})...")
     check_results = await asyncio.gather(
         *[verify_node(node, semaphore) for node in candidates]
     )
-
-    alive_nodes = [node for node, is_alive in zip(candidates, check_results, strict=True) if is_alive]
+    alive_nodes = [
+        node
+        for node, latency in zip(candidates, check_results, strict=True)
+        if latency is not None
+    ]
     reachable = len(alive_nodes)
+    logger.info(f"Protocol-level reachable nodes: {reachable} / {len(candidates)}")
+
+    e2e_status = {
+        "enabled": E2E_VERIFY,
+        "verified": 0,
+        "failed": 0,
+        "unsupported": 0,
+        "duration_sec": 0.0,
+    }
+    if E2E_VERIFY and alive_nodes:
+        logger.info(
+            f"Running end-to-end verification (workers={E2E_CONCURRENCY}, timeout={E2E_TIMEOUT}s)..."
+        )
+        e2e_started = time.monotonic()
+        try:
+            e2e_results = await e2e.verify_nodes(
+                alive_nodes,
+                xray_bin=xray_bin,
+                sing_box_bin=sing_box_bin,
+                concurrency=E2E_CONCURRENCY,
+                timeout=E2E_TIMEOUT,
+            )
+        except e2e.E2ERuntimeError as exc:
+            logger.error(f"E2E verification failed to run: {exc}")
+            return 2
+
+        e2e_status["duration_sec"] = round(time.monotonic() - e2e_started, 1)
+        for key in ("verified", "failed", "unsupported"):
+            e2e_status[key] = sum(1 for _, status, _ in e2e_results if status == key)
+        alive_nodes = [node for node in alive_nodes if node.get("e2e") != "failed"]
+        logger.info(
+            f"E2E verified: {e2e_status['verified']}, failed: {e2e_status['failed']}, "
+            f"unsupported: {e2e_status['unsupported']} ({e2e_status['duration_sec']}s)"
+        )
+
+    alive_nodes, diversity_removed = cap_diversity(alive_nodes)
+    cap_counts.update(diversity_removed)
+    if diversity_removed["subnet"] or diversity_removed["domain"]:
+        logger.info(
+            "Diversity caps after verification: "
+            f"removed subnet={diversity_removed['subnet']}, "
+            f"domain={diversity_removed['domain']}"
+        )
+
+    def latency_value(node: dict) -> Optional[float]:
+        if E2E_VERIFY and node.get("e2e") == "verified" and node.get("e2e_ms") is not None:
+            return node["e2e_ms"]
+        return node.get("latency_ms")
+
+    alive_nodes.sort(key=lambda node: (latency_value(node) is None, latency_value(node) or 0))
 
     alive_counts: Dict[str, int] = {}
     country_counts: Dict[str, int] = {}
+    alive_by_source: Dict[str, int] = {url: 0 for url in source_urls}
     for node in alive_nodes:
-        proto = node["scheme"]
-        alive_counts[proto] = alive_counts.get(proto, 0) + 1
+        protocol = node["scheme"]
+        alive_counts[protocol] = alive_counts.get(protocol, 0) + 1
         country_counts[node["flag"]] = country_counts.get(node["flag"], 0) + 1
+        for url in node["sources"]:
+            alive_by_source[url] = alive_by_source.get(url, 0) + 1
 
-    logger.info(f"✅ Total alive nodes: {reachable} / {len(candidates)} checked")
-    for proto, count in sorted(alive_counts.items(), key=lambda item: -item[1]):
-        logger.info(f"  {proto.upper()}: {count}")
+    logger.info(f"✅ Total published nodes: {len(alive_nodes)} / {len(candidates)} checked")
+    for protocol, count in sorted(alive_counts.items(), key=lambda item: -item[1]):
+        logger.info(f"  {protocol.upper()}: {count}")
     logger.info("Top countries:")
     for flag, count in sorted(country_counts.items(), key=lambda item: -item[1])[:8]:
         logger.info(f"  {flag}: {count}")
 
-    previous_total = read_previous_count(ALL_OUTPUT)
+    source_stats: Dict[str, dict] = {}
+    for url in source_urls:
+        entry = health.get("sources", {}).get(url, {})
+        active = url in active_set
+        if active:
+            raw = raw_by_source.get(url, 0)
+            unique = unique_by_source.get(url, 0)
+            alive = alive_by_source.get(url, 0)
+        else:
+            raw = int(entry.get("last_raw", 0))
+            unique = int(entry.get("last_unique", 0))
+            alive = int(entry.get("last_alive", 0))
+        source_stats[url] = {
+            "active": active,
+            "raw": raw,
+            "unique": unique,
+            "alive": alive,
+            "yield": round(alive / raw, 3) if raw else 0.0,
+            "quarantined": bool(
+                (until := _parse_datetime(entry.get("quarantined_until"))) and until > now
+            ),
+        }
+
+    previous_stats = load_previous_stats(STATS_OUTPUT)
+    previous_total = int(previous_stats.get("alive") or read_previous_count(ALL_OUTPUT))
+    previous_protocols = previous_stats.get("alive_by_protocol") or {}
+    baseline_reset = E2E_VERIFY and not previous_stats.get("e2e_enabled", False)
+    if baseline_reset:
+        logger.info(
+            "First E2E run: total/protocol drop guard is skipped to establish a new baseline."
+        )
+
     try:
-        enforce_guard(len(alive_nodes), previous_total)
+        enforce_guard(
+            len(alive_nodes),
+            previous_total,
+            protocol_counts=alive_counts,
+            previous_protocols=previous_protocols,
+            allow_baseline_reset=baseline_reset,
+        )
     except GuardError as exc:
         logger.error(f"Output guard triggered: {exc}. Previous files are kept unchanged.")
         return 1
 
-    vless_lines = [format_link(n) for n in alive_nodes if n["scheme"] == "vless"]
-    hy2_lines = [format_link(n) for n in alive_nodes if n["scheme"] == "hysteria2"]
-    all_lines = [format_link(n) for n in alive_nodes]
+    vless_lines = [format_link(node) for node in alive_nodes if node["scheme"] == "vless"]
+    hy2_lines = [format_link(node) for node in alive_nodes if node["scheme"] == "hysteria2"]
+    all_lines = [format_link(node) for node in alive_nodes]
 
     write_atomic(VLESS_OUTPUT, vless_lines)
     write_atomic(HY2_OUTPUT, hy2_lines)
@@ -683,26 +1044,46 @@ async def main() -> int:
         {
             "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "duration_sec": elapsed,
+            "e2e_enabled": E2E_VERIFY,
             "sources_total": len(source_urls),
+            "sources_active": len(active_urls),
+            "sources_skipped_quarantined": len(skipped_urls),
             "sources_with_data": fetched_ok,
-            "raw_links": len(all_raw_links),
+            "raw_links": raw_total,
             "unique_valid": len(parsed_nodes),
             "candidates_after_cap": len(candidates),
+            "capped_by_endpoint": cap_counts["endpoint"],
+            "capped_by_subnet": cap_counts["subnet"],
+            "capped_by_domain": cap_counts["domain"],
             "rejected_invalid": rejected,
             "reachable": reachable,
-            "capped_by_endpoint": capped,
+            "e2e": e2e_status,
             "alive": len(alive_nodes),
             "alive_by_protocol": dict(sorted(alive_counts.items())),
             "top_countries": dict(sorted(country_counts.items(), key=lambda item: -item[1])[:15]),
+            "latency_ms": latency_summary(alive_nodes),
+            "latency_by_protocol": {
+                protocol: latency_summary([node for node in alive_nodes if node["scheme"] == protocol])
+                for protocol in sorted(alive_counts)
+            },
             "previous_total": previous_total,
+            "baseline_reset": baseline_reset,
+            "source_stats": source_stats,
             "checks": {
-                "vless": "tcp_connect",
-                "trojan": "tcp_connect",
-                "hysteria2": "quic_v1_handshake_h3" if HAS_AIOQUIC else "unverified",
+                "vless": "xray_e2e" if E2E_VERIFY else "tcp_connect",
+                "trojan": "xray_e2e" if E2E_VERIFY else "tcp_connect",
+                "hysteria2": (
+                    "singbox_e2e"
+                    if E2E_VERIFY
+                    else ("quic_v1_handshake_h3" if HAS_AIOQUIC else "unverified")
+                ),
             },
         },
     )
+    new_health = update_source_health(health, source_urls, source_stats, now)
+    write_json_atomic(SOURCE_HEALTH_FILE, new_health)
     logger.info(f"Wrote run statistics -> {STATS_OUTPUT} ({elapsed}s)")
+    logger.info(f"Wrote source health -> {SOURCE_HEALTH_FILE}")
     return 0
 
 

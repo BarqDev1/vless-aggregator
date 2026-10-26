@@ -109,7 +109,7 @@ https://domain.com/sub/token
 | `FETCH_ATTEMPTS` | `3` | Попыток загрузки источника |
 | `MIN_ALIVE` | `10` | Минимум живых нод для публикации |
 | `MAX_DROP_RATIO` | `0.5` | Максимальное падение относительно прошлого прогона |
-| `PROTOCOL_MIN_ALIVE` | `5` | С какого количества включается per-protocol guard |
+| `PROTOCOL_MIN_ALIVE` | `3` | С какого количества включается per-protocol guard |
 | `PROTOCOL_MAX_DROP` | `0.7` | Максимальное падение отдельного протокола |
 | `MAX_PER_ENDPOINT` | `3` | Максимум вариантов на один `протокол + host:port + SNI` |
 | `MAX_PER_SUBNET` | `3` | Максимум нод на IPv4 `/24` или IPv6 `/48` |

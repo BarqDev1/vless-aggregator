@@ -3,11 +3,11 @@
 Multi-Protocol VPN Aggregator & Connectivity Checker.
 Downloads VLESS, Trojan, and Hysteria2 configs from multiple sources,
 including direct Git repositories (GitLab/GitHub) and raw HTTP/HTTPS URLs.
+(VMess is explicitly excluded per configuration).
 """
 
 import asyncio
 import base64
-import json
 import logging
 import os
 import re
@@ -46,8 +46,9 @@ FLAG_REGEX = re.compile(r"[\U0001F1E6-\U0001F1FF]{2}")
 COUNTRY_CODE_REGEX = re.compile(
     r"(?:^|[\s\[\(_\-\|])([A-Z]{2})(?:[\s\]\)_0-9\-\|]|$)"
 )
+# VMess is explicitly excluded
 SUPPORTED_PREFIXES = (
-    "vless://", "trojan://", "hysteria2://", "hy2://", "vmess://", "tuic://", "ss://"
+    "vless://", "trojan://", "hysteria2://", "hy2://", "tuic://", "ss://"
 )
 
 
@@ -65,17 +66,6 @@ def parse_vpn_link(link: str) -> Optional[dict]:
     try:
         scheme, _, rest = link.partition("://")
         scheme = scheme.lower()
-
-        if scheme == "vmess":
-            raw_b64, _, raw_remark = rest.partition("#")
-            pad = len(raw_b64) % 4
-            padded = raw_b64 + ("=" * ((4 - pad) % 4)) if pad else raw_b64
-            v_data = json.loads(base64.b64decode(padded).decode("utf-8", errors="ignore"))
-            host = str(v_data.get("add", "")).strip("[]")
-            port = int(v_data.get("port", 443))
-            sni = v_data.get("sni") or v_data.get("host") or ""
-            remark = urllib.parse.unquote(raw_remark or v_data.get("ps", "")).strip()
-            return _build_node(scheme, link, host, port, sni, remark, "tcp")
 
         url_part, _, raw_remark = rest.partition("#")
         remark = urllib.parse.unquote(raw_remark).strip()

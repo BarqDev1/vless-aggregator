@@ -32,3 +32,8 @@ https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/33.
 
 https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/34.txt
 
+https://raw.githubusercontent.com/wlunlocker/vpn-configs/main/whitelist_cidr1_ru.txt
+
+https://raw.githubusercontent.com/wlunlocker/vpn-configs/main/whitelist_cidr2_ru.txt
+
+https://raw.githubusercontent.com/wlunlocker/vpn-configs/main/whitelist_cidr3_eu.txt

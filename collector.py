@@ -2,8 +2,7 @@
 """
 Multi-Protocol VPN Aggregator & Connectivity Checker.
 Downloads VLESS, Trojan, and Hysteria2 configs from multiple sources,
-deduplicates, verifies TCP/UDP reachability, normalizes country flags,
-and exports clean unified subscription files.
+including direct Git repositories (GitLab/GitHub) and raw HTTP/HTTPS URLs.
 """
 
 import asyncio
@@ -13,6 +12,8 @@ import logging
 import os
 import re
 import socket
+import subprocess
+import tempfile
 import urllib.parse
 from typing import Dict, List, Optional, Tuple
 
@@ -65,7 +66,6 @@ def parse_vpn_link(link: str) -> Optional[dict]:
         scheme, _, rest = link.partition("://")
         scheme = scheme.lower()
 
-        # Handle VMess JSON format
         if scheme == "vmess":
             raw_b64, _, raw_remark = rest.partition("#")
             pad = len(raw_b64) % 4
@@ -77,7 +77,6 @@ def parse_vpn_link(link: str) -> Optional[dict]:
             remark = urllib.parse.unquote(raw_remark or v_data.get("ps", "")).strip()
             return _build_node(scheme, link, host, port, sni, remark, "tcp")
 
-        # Standard scheme://user@host:port?query#remark format
         url_part, _, raw_remark = rest.partition("#")
         remark = urllib.parse.unquote(raw_remark).strip()
 
@@ -156,7 +155,6 @@ async def check_connectivity(node: dict, timeout: float = TIMEOUT) -> bool:
         except Exception:
             return False
     else:
-        # UDP (Hysteria2/TUIC): test DNS resolution and local route binding
         try:
             loop = asyncio.get_running_loop()
             infos = await asyncio.wait_for(
@@ -175,11 +173,47 @@ async def check_connectivity(node: dict, timeout: float = TIMEOUT) -> bool:
             return False
 
 
+def _clone_git_repo(repo_url: str) -> List[str]:
+    """Clones a Git repository to read all .txt configs directly without rate limits."""
+    clean_url = repo_url[4:] if repo_url.startswith("git+") else repo_url
+    if not clean_url.endswith(".git") and ("gitlab.com" in clean_url or "github.com" in clean_url):
+        clean_url = clean_url.rstrip("/") + ".git"
+
+    configs = []
+    with tempfile.TemporaryDirectory() as tmpdir:
+        res = subprocess.run(
+            ["git", "clone", "--depth", "1", clean_url, tmpdir],
+            capture_output=True,
+            text=True,
+            timeout=40,
+        )
+        if res.returncode != 0:
+            logger.warning(f"Failed to clone {clean_url}: {res.stderr.strip()[:100]}")
+            return []
+
+        for fname in os.listdir(tmpdir):
+            if fname.endswith(".txt") and ("WHITE" in fname or "Vless" in fname or "all" in fname.lower()):
+                fpath = os.path.join(tmpdir, fname)
+                try:
+                    with open(fpath, "r", encoding="utf-8", errors="ignore") as f:
+                        lines = [l.strip() for l in f if any(l.strip().startswith(p) for p in SUPPORTED_PREFIXES)]
+                        configs.extend(lines)
+                except Exception:
+                    pass
+    logger.info(f" -> Found {len(configs)} configs from Git repo: {clean_url}")
+    return configs
+
+
 async def fetch_source(session: aiohttp.ClientSession, url: str) -> List[str]:
-    """Fetches a URL, extracting raw or base64 lines for all protocols."""
+    """Fetches a URL, extracting raw lines or cloning Git repos directly."""
     url = url.strip()
     if not url or url.startswith("#"):
         return []
+
+    # Handle Git repositories directly
+    if url.startswith("git+") or (url.endswith(".git") and ("gitlab.com" in url or "github.com" in url)):
+        logger.info(f"Cloning Git source: {url}")
+        return await asyncio.to_thread(_clone_git_repo, url)
 
     logger.info(f"Downloading source: {url}")
     try:
@@ -189,11 +223,9 @@ async def fetch_source(session: aiohttp.ClientSession, url: str) -> List[str]:
                 return []
             body = (await resp.text()).strip()
 
-        # If plain text with protocol schemes
         if any(p in body for p in SUPPORTED_PREFIXES):
             lines = [l.strip() for l in body.splitlines() if l.strip()]
         else:
-            # Base64 decode attempt
             try:
                 pad = len(body) % 4
                 padded = body + ("=" * ((4 - pad) % 4)) if pad else body
@@ -222,11 +254,7 @@ async def main():
         return
 
     with open(SOURCES_FILE, "r", encoding="utf-8") as f:
-        source_urls = [
-            line.strip()
-            for line in f
-            if line.strip() and not line.strip().startswith("#")
-        ]
+        source_urls = [line.strip() for line in f if line.strip() and not line.strip().startswith("#")]
 
     if not source_urls:
         logger.warning("No URLs found in sources.txt.")
@@ -243,7 +271,6 @@ async def main():
 
     logger.info(f"Total raw links collected: {len(all_raw_links)}")
 
-    # Deduplication
     seen_keys = set()
     parsed_nodes: List[dict] = []
     for raw in all_raw_links:
@@ -255,7 +282,6 @@ async def main():
 
     logger.info(f"Unique nodes to check: {len(parsed_nodes)}")
 
-    # Connectivity Check
     semaphore = asyncio.Semaphore(MAX_CONCURRENT_PINGS)
 
     async def verify(node: dict) -> Tuple[dict, bool]:

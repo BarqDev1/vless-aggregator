@@ -7,5 +7,11 @@
 # Текущий проверенный источник с российскими белыми списками (VK, Kinopoisk и др.):
 https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt
 
-# Добавляйте сюда любые новые ссылки:
-# https://raw.githubusercontent.com/...
+https://raw.githubusercontent.com/artembsk/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-all.txt
+
+https://raw.githubusercontent.com/artembsk/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt
+
+https://raw.githubusercontent.com/artembsk/vpn-configs-for-russia/refs/heads/main/Vless-Reality-White-Lists-Rus-Mobile.txt
+
+https://raw.githubusercontent.com/artembsk/vpn-configs-for-russia/refs/heads/main/Vless-Reality-White-Lists-Rus-Mobile-2.txt
+

@@ -7,7 +7,7 @@
 - ⚡ **Двойная проверка доступности:** асинхронный TCP Ping (для VLESS, Trojan, VMess) и UDP DNS/route test (для Hysteria 2).
 - 🧹 **Умная дедупликация:** фильтрует дубликаты по `scheme:host:port:sni`.
 - 🏳️ **Флаги стран:** автоматически определяет и нормализует флаги (`🇷🇺`, `🇩🇪`, `🇳🇱` и др.), чтобы Remnawave корректно группировал их в балансировщики.
-- 🤖 **GitHub Actions:** автоматически обновляет файлы каждые 2 часа и при изменении `sources.txt`.
+- 🤖 **GitHub Actions:** автоматически обновляет файлы **каждый час** (`cron: 0 * * * *`) и при любом изменении `sources.txt`.
 
 ---
 
@@ -32,6 +32,7 @@ https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/all_universal.t
 
 Откройте файл `sources.txt` (локально или прямо на сайте GitHub) и допишите нужную ссылку новой строкой:
 ```text
+git+https://gitlab.com/.../*.git
 https://raw.githubusercontent.com/.../some_list.txt
 https://domain.com/sub/token
 ```

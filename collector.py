@@ -27,6 +27,13 @@ TIMEOUT = float(os.getenv("PING_TIMEOUT", "3.0"))
 MAX_CONCURRENT_PINGS = int(os.getenv("CONCURRENCY", "60"))
 FETCH_TIMEOUT = float(os.getenv("FETCH_TIMEOUT", "20.0"))
 
+DEFAULT_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+    )
+}
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -228,7 +235,7 @@ async def main():
     logger.info(f"Loaded {len(source_urls)} sources to process.")
 
     all_raw_links: List[str] = []
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(headers=DEFAULT_HEADERS) as session:
         tasks = [fetch_source(session, u) for u in source_urls]
         results = await asyncio.gather(*tasks)
         for r in results:

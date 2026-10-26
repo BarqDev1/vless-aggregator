@@ -1,14 +1,17 @@
-# Список ссылок-источников с VLESS ключами (по одной ссылке на строку)
-# Поддерживаются:
-# - raw ссылки на GitHub (начинаются с https://raw.githubusercontent.com/...)
+# Список ссылок-источников с VPN ключами (по одной ссылке на строку)
+# Поддерживаются: VLESS, Trojan, Hysteria 2, VMess
+# - raw ссылки на GitHub (https://raw.githubusercontent.com/...)
 # - обычные URL подписок (текстовые или base64)
 # - строки, начинающиеся с #, игнорируются
 
-# Текущий проверенный источник с российскими белыми списками (VK, Kinopoisk и др.):
+# 1. zieng2 — Проверенные белые списки (VK, Кинопоиск, Госуслуги):
 https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt
 
-https://gitlab.com/igareck/vpn-configs-for-russia/-/raw/main/WHITE-CIDR-RU-all.txt?ref_type=heads
+# 2. igareck — Зеркало на GitHub (VLESS Reality для РФ без 429 лимитов):
+https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/main/WHITE-CIDR-RU-all.txt
+https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/main/Vless-Reality-White-Lists-Rus-Mobile.txt
+https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/main/WHITE-CIDR-RU-checked.txt
 
-https://gitlab.com/igareck/vpn-configs-for-russia/-/raw/main/Vless-Reality-White-Lists-Rus-Mobile.txt?ref_type=heads
-
-https://gitlab.com/igareck/vpn-configs-for-russia/-/raw/main/WHITE-CIDR-RU-checked.txt?ref_type=heads
+# 3. artembsk — Мультипротокольные списки (VLESS + Hysteria 2 + Trojan):
+https://raw.githubusercontent.com/artembsk/vpn-configs-for-russia/main/WHITE-CIDR-RU-all.txt
+https://raw.githubusercontent.com/artembsk/vpn-configs-for-russia/main/Vless-Reality-White-Lists-Rus-Mobile.txt

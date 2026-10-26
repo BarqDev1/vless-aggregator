@@ -19,3 +19,16 @@ https://raw.githubusercontent.com/artembsk/vpn-configs-for-russia/main/Vless-Rea
 https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_FULL.txt
 
 https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_LITE.txt
+
+https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/26.1.txt
+
+https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/30.txt
+
+https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/31.txt
+
+https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/32.1.txt
+
+https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/33.1.txt
+
+https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/34.txt
+

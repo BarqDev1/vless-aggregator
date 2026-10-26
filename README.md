@@ -131,6 +131,7 @@ https://domain.com/sub/token
 | `E2E_TIMEOUT` | `7.0` | Таймаут HTTP-запроса через туннель, сек |
 | `XRAY_BIN` | `xray` | Путь к бинарнику Xray |
 | `SING_BOX_BIN` | `sing-box` | Путь к бинарнику sing-box |
+| `BASELINE_RESET` | `0` | Пропустить drop-guard при намеренном изменении набора источников |
 
 ---
 

@@ -37,8 +37,3 @@ https://raw.githubusercontent.com/wlunlocker/vpn-configs/main/whitelist_cidr1_ru
 https://raw.githubusercontent.com/wlunlocker/vpn-configs/main/whitelist_cidr2_ru.txt
 
 https://raw.githubusercontent.com/wlunlocker/vpn-configs/main/whitelist_cidr3_eu.txt
-
-# 5. Hysteria2-specific (high e2e yield)
-https://raw.githubusercontent.com/svinakraft-maker/FlareFeed/main/public/hysteria2.txt
-https://raw.githubusercontent.com/sakha1370/OpenRay/main/output/kind/hysteria2.txt
-https://raw.githubusercontent.com/0xRadikal/Free-v2ray-Configs/main/protocols/hysteria2.txt

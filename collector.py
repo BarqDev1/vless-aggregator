@@ -87,6 +87,7 @@ E2E_CONCURRENCY = max(1, int(os.getenv("E2E_CONCURRENCY", "6")))
 E2E_TIMEOUT = float(os.getenv("E2E_TIMEOUT", "7.0"))
 XRAY_BIN = os.getenv("XRAY_BIN", "xray")
 SING_BOX_BIN = os.getenv("SING_BOX_BIN", "sing-box")
+BASELINE_RESET = os.getenv("BASELINE_RESET", "0").strip().lower() in {"1", "true", "yes", "on"}
 
 DEFAULT_HEADERS = {
     "User-Agent": (
@@ -1122,8 +1123,14 @@ async def main() -> int:
     previous_stats = load_previous_stats(STATS_OUTPUT)
     previous_total = int(previous_stats.get("alive") or read_previous_count(ALL_OUTPUT))
     previous_protocols = previous_stats.get("alive_by_protocol") or {}
-    baseline_reset = E2E_VERIFY and not previous_stats.get("e2e_enabled", False)
-    if baseline_reset:
+    baseline_reset = BASELINE_RESET or (
+        E2E_VERIFY and not previous_stats.get("e2e_enabled", False)
+    )
+    if BASELINE_RESET:
+        logger.warning(
+            "BASELINE_RESET=1: total and per-protocol drop guards are skipped for this run."
+        )
+    elif baseline_reset:
         logger.info(
             "First E2E run: total/protocol drop guard is skipped to establish a new baseline."
         )

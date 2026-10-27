@@ -83,6 +83,7 @@ MAX_GIT_FILES = int(os.getenv("MAX_GIT_FILES", "2000"))
 MIN_ALIVE = int(os.getenv("MIN_ALIVE", "10"))
 MAX_DROP_RATIO = float(os.getenv("MAX_DROP_RATIO", "0.5"))
 MAX_PER_ENDPOINT = max(1, int(os.getenv("MAX_PER_ENDPOINT", "3")))
+PUBLISH_PER_ENDPOINT = max(1, int(os.getenv("PUBLISH_PER_ENDPOINT", "1")))
 MAX_PER_SUBNET = max(1, int(os.getenv("MAX_PER_SUBNET", "3")))
 MAX_PER_DOMAIN = max(1, int(os.getenv("MAX_PER_DOMAIN", "10")))
 MAX_REMARK_LEN = int(os.getenv("MAX_REMARK_LEN", "120"))
@@ -768,6 +769,15 @@ def _domain_key(node: dict) -> Optional[str]:
     return ".".join(labels[-2:])
 
 
+def cap_published_endpoints(nodes: List[dict]) -> Tuple[List[dict], int]:
+    """Publishes one (usually the fastest) variant per endpoint."""
+    return _cap_by_key(
+        nodes,
+        lambda n: (n["scheme"], n["host"].lower(), n["port"], n["sni"].lower()),
+        PUBLISH_PER_ENDPOINT,
+    )
+
+
 def _cap_by_key(nodes: List[dict], key_fn, limit: int) -> Tuple[List[dict], int]:
     kept: List[dict] = []
     counts: Dict[str, int] = {}
@@ -1236,6 +1246,21 @@ async def main() -> int:
         node for node in alive_nodes if node_history_id(node) in eligible_ids
     ]
 
+    def latency_value(node: dict) -> Optional[float]:
+        if E2E_VERIFY and node.get("e2e") == "verified" and node.get("e2e_ms") is not None:
+            return node["e2e_ms"]
+        return node.get("latency_ms")
+
+    alive_nodes.sort(key=lambda node: (latency_value(node) is None, latency_value(node) or 0))
+
+    alive_nodes, published_removed = cap_published_endpoints(alive_nodes)
+    cap_counts["published_endpoint"] = published_removed
+    if published_removed:
+        logger.info(
+            f"Published endpoint cap: removed {published_removed} duplicate variants "
+            f"(PUBLISH_PER_ENDPOINT={PUBLISH_PER_ENDPOINT})."
+        )
+
     alive_nodes, diversity_removed = cap_diversity(alive_nodes)
     cap_counts.update(diversity_removed)
     if diversity_removed["subnet"] or diversity_removed["domain"]:
@@ -1244,13 +1269,6 @@ async def main() -> int:
             f"removed subnet={diversity_removed['subnet']}, "
             f"domain={diversity_removed['domain']}"
         )
-
-    def latency_value(node: dict) -> Optional[float]:
-        if E2E_VERIFY and node.get("e2e") == "verified" and node.get("e2e_ms") is not None:
-            return node["e2e_ms"]
-        return node.get("latency_ms")
-
-    alive_nodes.sort(key=lambda node: (latency_value(node) is None, latency_value(node) or 0))
 
     alive_counts: Dict[str, int] = {}
     country_counts: Dict[str, int] = {}
@@ -1346,6 +1364,7 @@ async def main() -> int:
             "unique_valid": len(parsed_nodes),
             "candidates_after_cap": len(candidates),
             "capped_by_endpoint": cap_counts["endpoint"],
+            "capped_by_published_endpoint": cap_counts.get("published_endpoint", 0),
             "capped_by_subnet": cap_counts["subnet"],
             "capped_by_domain": cap_counts["domain"],
             "rejected_invalid": rejected,

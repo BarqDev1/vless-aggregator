@@ -74,6 +74,14 @@ def test_endpoint_cap_keeps_distinct_endpoints():
     assert len(c.cap_per_endpoint(nodes, limit=1)) == 4
 
 
+def test_published_endpoint_cap_removes_credential_copies(monkeypatch):
+    monkeypatch.setattr(c, "PUBLISH_PER_ENDPOINT", 1)
+    nodes = [_node(credential=f"uuid-{i}") for i in range(3)]
+    kept, removed = c.cap_published_endpoints(nodes)
+    assert len(kept) == 1
+    assert removed == 2
+
+
 def test_guard_protocol_disappeared():
     with pytest.raises(c.GuardError):
         c.enforce_guard(

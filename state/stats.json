@@ -1,30 +1,30 @@
 {
-  "alive": 99,
+  "alive": 98,
   "alive_by_protocol": {
     "hysteria2": 6,
     "trojan": 9,
-    "vless": 84
+    "vless": 83
   },
   "baseline_reset": false,
   "candidates_after_cap": 530,
   "capped_by_domain": 0,
   "capped_by_endpoint": 329,
-  "capped_by_published_endpoint": 49,
-  "capped_by_subnet": 2,
+  "capped_by_published_endpoint": 50,
+  "capped_by_subnet": 3,
   "checks": {
     "hysteria2": "xray_hysteria2_e2e",
     "trojan": "xray_e2e",
     "vless": "xray_e2e"
   },
-  "duration_sec": 66.9,
+  "duration_sec": 56.1,
   "e2e": {
-    "cached": 147,
-    "cached_failed": 65,
-    "duration_sec": 19.2,
+    "cached": 149,
+    "cached_failed": 57,
+    "duration_sec": 20.3,
     "enabled": true,
-    "failed": 43,
+    "failed": 42,
     "unsupported": 2,
-    "verified": 4
+    "verified": 1
   },
   "e2e_enabled": true,
   "hysteria2_pinned": 6,
@@ -42,30 +42,30 @@
       "p90": 1373.3
     },
     "vless": {
-      "max": 4659.7,
-      "min": 153.3,
-      "p50": 1276.5,
+      "max": 4862.3,
+      "min": 143.7,
+      "p50": 1275.0,
       "p90": 3547.6
     }
   },
   "latency_ms": {
-    "max": 4659.7,
-    "min": 153.3,
-    "p50": 1210.2,
+    "max": 4862.3,
+    "min": 143.7,
+    "p50": 1190.8,
     "p90": 3391.5
   },
-  "previous_total": 97,
+  "previous_total": 99,
   "raw_links": 2122,
-  "reachable": 261,
+  "reachable": 251,
   "rejected_invalid": 140,
   "source_stats": {
     "git+https://gitlab.com/igareck/vpn-configs-for-russia.git": {
       "active": true,
-      "alive": 24,
+      "alive": 23,
       "quarantined": false,
       "raw": 1293,
       "unique": 308,
-      "yield": 0.019
+      "yield": 0.018
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_FULL.txt": {
       "active": true,
@@ -186,21 +186,21 @@
   "sources_with_data": 8,
   "stability": {
     "bootstrap": 0,
-    "eligible": 150,
-    "held_back": 3,
+    "eligible": 151,
+    "held_back": 1,
     "pruned": 0,
-    "tracked": 285,
-    "verified": 153
+    "tracked": 286,
+    "verified": 152
   },
   "tls_inspection": {
     "failed": 0,
     "pinned": 0,
-    "valid": 9
+    "valid": 7
   },
   "top_countries": {
     "🇧🇬": 6,
     "🇨🇦": 8,
-    "🇩🇪": 6,
+    "🇩🇪": 5,
     "🇫🇮": 8,
     "🇫🇷": 8,
     "🇬🇧": 5,
@@ -208,12 +208,12 @@
     "🇰🇷": 2,
     "🇲🇩": 3,
     "🇳🇱": 8,
-    "🇷🇺": 10,
+    "🇷🇺": 9,
     "🇸🇬": 3,
     "🇹🇷": 3,
     "🇺🇸": 8,
     "🌐": 2
   },
   "unique_valid": 859,
-  "updated_at": "2026-10-27T13:18:52+00:00"
+  "updated_at": "2026-10-27T13:21:56+00:00"
 }

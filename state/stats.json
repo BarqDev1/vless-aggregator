@@ -1,61 +1,61 @@
 {
-  "alive": 86,
+  "alive": 87,
   "alive_by_protocol": {
     "hysteria2": 5,
     "trojan": 8,
-    "vless": 73
+    "vless": 74
   },
   "baseline_reset": false,
-  "candidates_after_cap": 529,
+  "candidates_after_cap": 398,
   "capped_by_domain": 0,
   "capped_by_endpoint": 332,
-  "capped_by_published_endpoint": 52,
-  "capped_by_subnet": 2,
+  "capped_by_published_endpoint": 46,
+  "capped_by_subnet": 3,
   "checks": {
     "hysteria2": "xray_hysteria2_e2e",
     "trojan": "xray_e2e",
     "vless": "xray_e2e"
   },
-  "duration_sec": 169.3,
+  "duration_sec": 156.0,
   "e2e": {
-    "duration_sec": 114.9,
+    "duration_sec": 108.7,
     "enabled": true,
-    "failed": 93,
+    "failed": 80,
     "unsupported": 3,
-    "verified": 146
+    "verified": 141
   },
   "e2e_enabled": true,
   "hysteria2_pinned": 5,
   "latency_by_protocol": {
     "hysteria2": {
-      "max": 4732.0,
-      "min": 174.3,
-      "p50": 423.7,
-      "p90": 4732.0
+      "max": 579.4,
+      "min": 76.3,
+      "p50": 518.2,
+      "p90": 579.4
     },
     "trojan": {
-      "max": 592.5,
-      "min": 131.1,
-      "p50": 363.1,
-      "p90": 454.6
+      "max": 2989.9,
+      "min": 67.4,
+      "p50": 535.0,
+      "p90": 561.4
     },
     "vless": {
-      "max": 6932.8,
-      "min": 75.6,
-      "p50": 705.6,
-      "p90": 4295.5
+      "max": 6876.2,
+      "min": 69.8,
+      "p50": 760.9,
+      "p90": 4543.4
     }
   },
   "latency_ms": {
-    "max": 6932.8,
-    "min": 75.6,
-    "p50": 646.7,
-    "p90": 3444.7
+    "max": 6876.2,
+    "min": 67.4,
+    "p50": 706.7,
+    "p90": 3337.4
   },
   "previous_total": 79,
-  "raw_links": 2153,
-  "reachable": 254,
-  "rejected_invalid": 142,
+  "raw_links": 2018,
+  "reachable": 238,
+  "rejected_invalid": 138,
   "source_stats": {
     "git+https://gitlab.com/igareck/vpn-configs-for-russia.git": {
       "active": true,
@@ -67,27 +67,27 @@
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_FULL.txt": {
       "active": true,
-      "alive": 53,
+      "alive": 55,
       "quarantined": false,
       "raw": 108,
       "unique": 76,
-      "yield": 0.491
+      "yield": 0.509
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_LITE.txt": {
       "active": true,
-      "alive": 53,
+      "alive": 54,
       "quarantined": false,
       "raw": 107,
       "unique": 75,
-      "yield": 0.495
+      "yield": 0.505
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/26.1.txt": {
       "active": true,
       "alive": 2,
       "quarantined": false,
-      "raw": 296,
-      "unique": 291,
-      "yield": 0.007
+      "raw": 161,
+      "unique": 160,
+      "yield": 0.012
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/30.txt": {
       "active": true,
@@ -171,11 +171,11 @@
     },
     "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt": {
       "active": true,
-      "alive": 7,
+      "alive": 6,
       "quarantined": false,
       "raw": 132,
       "unique": 132,
-      "yield": 0.053
+      "yield": 0.045
     }
   },
   "sources_active": 8,
@@ -184,34 +184,34 @@
   "sources_with_data": 8,
   "stability": {
     "bootstrap": 0,
-    "eligible": 140,
-    "held_back": 9,
+    "eligible": 136,
+    "held_back": 8,
     "pruned": 0,
     "tracked": 253,
-    "verified": 149
+    "verified": 144
   },
   "tls_inspection": {
-    "failed": 12,
-    "pinned": 11,
-    "valid": 80
+    "failed": 14,
+    "pinned": 12,
+    "valid": 76
   },
   "top_countries": {
-    "🇧🇬": 4,
+    "🇧🇬": 5,
     "🇨🇦": 8,
-    "🇩🇪": 4,
-    "🇫🇮": 11,
+    "🇩🇪": 2,
+    "🇫🇮": 10,
     "🇫🇷": 7,
-    "🇬🇧": 4,
+    "🇬🇧": 5,
     "🇮🇳": 3,
-    "🇳🇱": 7,
+    "🇲🇩": 3,
+    "🇳🇱": 8,
     "🇵🇱": 2,
-    "🇷🇸": 4,
     "🇷🇺": 6,
-    "🇸🇪": 2,
+    "🇸🇪": 3,
     "🇹🇷": 3,
     "🇺🇸": 5,
     "🌐": 2
   },
-  "unique_valid": 861,
-  "updated_at": "2026-10-27T12:48:14+00:00"
+  "unique_valid": 730,
+  "updated_at": "2026-10-27T12:51:45+00:00"
 }

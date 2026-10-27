@@ -1,115 +1,115 @@
 {
-  "alive": 98,
+  "alive": 180,
   "alive_by_protocol": {
-    "hysteria2": 6,
-    "trojan": 20,
-    "vless": 72
+    "hysteria2": 20,
+    "trojan": 24,
+    "vless": 136
   },
   "baseline_reset": false,
-  "candidates_after_cap": 483,
-  "capped_by_domain": 0,
-  "capped_by_endpoint": 268,
-  "capped_by_subnet": 23,
+  "candidates_after_cap": 489,
+  "capped_by_domain": 5,
+  "capped_by_endpoint": 300,
+  "capped_by_subnet": 43,
   "checks": {
     "hysteria2": "singbox_e2e",
     "trojan": "xray_e2e",
     "vless": "xray_e2e"
   },
-  "duration_sec": 155.4,
+  "duration_sec": 148.6,
   "e2e": {
-    "duration_sec": 95.6,
+    "duration_sec": 104.6,
     "enabled": true,
-    "failed": 73,
+    "failed": 120,
     "unsupported": 1,
-    "verified": 120
+    "verified": 227
   },
   "e2e_enabled": true,
   "latency_by_protocol": {
     "hysteria2": {
-      "max": 1339.4,
-      "min": 481.4,
-      "p50": 579.3,
-      "p90": 1130.2
+      "max": 3175.6,
+      "min": 401.3,
+      "p50": 557.7,
+      "p90": 2363.8
     },
     "trojan": {
-      "max": 996.0,
-      "min": 82.1,
-      "p50": 497.6,
-      "p90": 549.8
+      "max": 6961.8,
+      "min": 127.0,
+      "p50": 426.5,
+      "p90": 1001.2
     },
     "vless": {
-      "max": 5902.7,
-      "min": 68.5,
-      "p50": 893.0,
-      "p90": 4373.7
+      "max": 4355.3,
+      "min": 88.7,
+      "p50": 567.7,
+      "p90": 1784.0
     }
   },
   "latency_ms": {
-    "max": 5902.7,
-    "min": 68.5,
-    "p50": 714.2,
-    "p90": 3321.5
+    "max": 6961.8,
+    "min": 88.7,
+    "p50": 541.8,
+    "p90": 1845.8
   },
-  "previous_total": 101,
-  "raw_links": 2214,
-  "reachable": 207,
-  "rejected_invalid": 25,
+  "previous_total": 98,
+  "raw_links": 2699,
+  "reachable": 359,
+  "rejected_invalid": 41,
   "source_stats": {
     "git+https://gitlab.com/igareck/vpn-configs-for-russia.git": {
       "active": true,
-      "alive": 74,
+      "alive": 135,
       "quarantined": false,
-      "raw": 1471,
-      "unique": 337,
-      "yield": 0.05
+      "raw": 1974,
+      "unique": 439,
+      "yield": 0.068
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_FULL.txt": {
       "active": true,
-      "alive": 7,
+      "alive": 15,
       "quarantined": false,
-      "raw": 20,
-      "unique": 13,
-      "yield": 0.35
+      "raw": 23,
+      "unique": 15,
+      "yield": 0.652
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_LITE.txt": {
       "active": true,
-      "alive": 7,
+      "alive": 15,
       "quarantined": false,
-      "raw": 20,
-      "unique": 13,
-      "yield": 0.35
+      "raw": 23,
+      "unique": 15,
+      "yield": 0.652
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/26.1.txt": {
       "active": true,
       "alive": 1,
       "quarantined": false,
-      "raw": 296,
-      "unique": 291,
-      "yield": 0.003
+      "raw": 137,
+      "unique": 136,
+      "yield": 0.007
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/30.txt": {
       "active": true,
-      "alive": 14,
+      "alive": 22,
       "quarantined": false,
-      "raw": 86,
-      "unique": 86,
-      "yield": 0.163
+      "raw": 130,
+      "unique": 130,
+      "yield": 0.169
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/31.txt": {
       "active": true,
-      "alive": 14,
+      "alive": 22,
       "quarantined": false,
-      "raw": 86,
-      "unique": 86,
-      "yield": 0.163
+      "raw": 130,
+      "unique": 130,
+      "yield": 0.169
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/32.1.txt": {
       "active": true,
-      "alive": 18,
+      "alive": 31,
       "quarantined": false,
-      "raw": 119,
-      "unique": 119,
-      "yield": 0.151
+      "raw": 162,
+      "unique": 162,
+      "yield": 0.191
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/33.1.txt": {
       "active": false,
@@ -169,11 +169,11 @@
     },
     "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt": {
       "active": true,
-      "alive": 17,
+      "alive": 14,
       "quarantined": false,
-      "raw": 116,
-      "unique": 116,
-      "yield": 0.147
+      "raw": 120,
+      "unique": 120,
+      "yield": 0.117
     }
   },
   "sources_active": 8,
@@ -181,27 +181,27 @@
   "sources_total": 15,
   "sources_with_data": 8,
   "tls_inspection": {
-    "failed": 13,
-    "pinned": 10,
-    "valid": 77
+    "failed": 11,
+    "pinned": 9,
+    "valid": 209
   },
   "top_countries": {
-    "🇨🇦": 8,
-    "🇨🇿": 1,
-    "🇩🇪": 16,
-    "🇩🇰": 2,
-    "🇪🇪": 2,
-    "🇫🇮": 8,
-    "🇫🇷": 10,
-    "🇭🇰": 1,
-    "🇳🇱": 16,
-    "🇵🇱": 3,
-    "🇷🇴": 2,
-    "🇷🇸": 5,
-    "🇷🇺": 17,
-    "🇺🇸": 2,
-    "🌐": 2
+    "🇦🇷": 4,
+    "🇨🇦": 31,
+    "🇨🇭": 3,
+    "🇩🇪": 13,
+    "🇫🇮": 22,
+    "🇫🇷": 12,
+    "🇬🇧": 7,
+    "🇭🇰": 3,
+    "🇳🇱": 23,
+    "🇵🇱": 4,
+    "🇷🇸": 7,
+    "🇷🇺": 18,
+    "🇸🇪": 3,
+    "🇺🇸": 11,
+    "🌐": 3
   },
-  "unique_valid": 751,
-  "updated_at": "2026-10-26T22:04:04+00:00"
+  "unique_valid": 789,
+  "updated_at": "2026-10-27T03:47:44+00:00"
 }

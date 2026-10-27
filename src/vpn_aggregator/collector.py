@@ -35,12 +35,13 @@ import time
 import urllib.parse
 from contextlib import suppress
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
 import aiohttp
 from cryptography.hazmat.primitives import serialization
 
-import e2e
+from . import e2e
 
 try:  # Hysteria2 runs over QUIC; without aioquic we cannot check it honestly.
     from aioquic.asyncio.client import connect as quic_connect
@@ -53,15 +54,26 @@ except ImportError:  # pragma: no cover - exercised only without the dependency
     HAS_AIOQUIC = False
 
 
-SOURCES_FILE = os.getenv("SOURCES_FILE", "sources.txt")
-VLESS_OUTPUT = os.getenv("VLESS_OUTPUT", "vless_universal.txt")
-HY2_OUTPUT = os.getenv("HY2_OUTPUT", "hysteria2.txt")
-ALL_OUTPUT = os.getenv("ALL_OUTPUT", "all_universal.txt")
-STATS_OUTPUT = os.getenv("STATS_OUTPUT", "stats.json")
-SOURCE_HEALTH_FILE = os.getenv("SOURCE_HEALTH_FILE", "source_health.json")
-NODE_HISTORY_FILE = os.getenv("NODE_HISTORY_FILE", "node_history.json")
-HISTORY_FILE = os.getenv("HISTORY_FILE", "history.json")
-META_FILE = os.getenv("META_FILE", "meta.json")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _project_path(*parts: str) -> str:
+    return str(PROJECT_ROOT.joinpath(*parts))
+
+
+SOURCES_FILE = os.getenv("SOURCES_FILE", _project_path("config", "sources.txt"))
+VLESS_OUTPUT = os.getenv("VLESS_OUTPUT", _project_path("vless_universal.txt"))
+HY2_OUTPUT = os.getenv("HY2_OUTPUT", _project_path("hysteria2.txt"))
+ALL_OUTPUT = os.getenv("ALL_OUTPUT", _project_path("all_universal.txt"))
+STATS_OUTPUT = os.getenv("STATS_OUTPUT", _project_path("state", "stats.json"))
+SOURCE_HEALTH_FILE = os.getenv(
+    "SOURCE_HEALTH_FILE", _project_path("state", "source_health.json")
+)
+NODE_HISTORY_FILE = os.getenv(
+    "NODE_HISTORY_FILE", _project_path("state", "node_history.json")
+)
+HISTORY_FILE = os.getenv("HISTORY_FILE", _project_path("state", "history.json"))
+META_FILE = os.getenv("META_FILE", _project_path("state", "meta.json"))
 
 PROFILE_TITLE = os.getenv("PROFILE_TITLE", "BarqDev Multi-Protocol VPN")
 SUPPORT_URL = os.getenv(

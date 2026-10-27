@@ -1,7 +1,7 @@
 import base64
 import urllib.parse
 
-import collector as c
+from vpn_aggregator import collector as c
 
 UUID = "11111111-1111-1111-1111-111111111111"
 VLESS = (

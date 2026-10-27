@@ -9,7 +9,7 @@ ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["."]
+pythonpath = ["src"]
 addopts = "-q"
 
 [tool.mypy]
@@ -18,7 +18,7 @@ ignore_missing_imports = true
 check_untyped_defs = true
 
 [tool.coverage.run]
-source = ["collector", "e2e"]
+source = ["vpn_aggregator"]
 
 [tool.coverage.report]
 fail_under = 50

@@ -2,13 +2,13 @@ import asyncio
 import json
 from pathlib import Path
 
-import collector as c
+from vpn_aggregator import collector as c
 
 ROOT = Path(__file__).resolve().parents[1]
 VLESS = ROOT / "vless_universal.txt"
 HY2 = ROOT / "hysteria2.txt"
 ALL = ROOT / "all_universal.txt"
-STATS = ROOT / "stats.json"
+STATS = ROOT / "state" / "stats.json"
 
 
 def _lines(path: Path):

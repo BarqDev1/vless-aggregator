@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-import collector as c
+from vpn_aggregator import collector as c
 
 
 def _node(key: str) -> dict:

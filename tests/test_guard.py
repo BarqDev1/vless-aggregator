@@ -3,7 +3,7 @@ import os
 
 import pytest
 
-import collector as c
+from vpn_aggregator import collector as c
 
 
 def test_guard_passes_normal_run():

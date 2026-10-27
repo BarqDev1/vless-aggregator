@@ -6,10 +6,13 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - 'sources.txt'
+      - 'config/sources.txt'
 
 permissions:
   contents: read
+
+env:
+  PYTHONPATH: src
 
 concurrency:
   group: vpn-aggregator-update
@@ -36,10 +39,10 @@ jobs:
         run: ruff check .
 
       - name: Type check
-        run: mypy collector.py e2e.py
+        run: mypy src/vpn_aggregator
 
       - name: Test
-        run: pytest --cov --cov-report=term-missing --cov-fail-under=50
+        run: pytest --cov=vpn_aggregator --cov-report=term-missing --cov-fail-under=50
 
       - name: Dependency audit
         run: pip-audit -r requirements.lock
@@ -77,7 +80,7 @@ jobs:
           bin/xray version
 
       - name: Run collector
-        run: python collector.py
+        run: python -m vpn_aggregator
 
       - name: Validate generated subscriptions
         run: pytest tests/test_outputs.py
@@ -86,16 +89,16 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          mkdir -p /tmp/generated
-          cp vless_universal.txt hysteria2.txt all_universal.txt stats.json source_health.json \
-             node_history.json history.json meta.json /tmp/generated/
+          rm -rf /tmp/generated
+          mkdir -p /tmp/generated/state
+          cp vless_universal.txt hysteria2.txt all_universal.txt /tmp/generated/
+          cp state/*.json /tmp/generated/state/
 
           push_generated() {
             git fetch -q origin main
             git reset --hard -q FETCH_HEAD
-            cp /tmp/generated/* .
-            git add vless_universal.txt hysteria2.txt all_universal.txt \
-                    stats.json source_health.json node_history.json history.json meta.json
+            cp -R /tmp/generated/. .
+            git add vless_universal.txt hysteria2.txt all_universal.txt state/
             if git diff --staged --quiet; then
               echo "No changes to commit"
             else

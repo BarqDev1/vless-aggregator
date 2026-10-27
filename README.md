@@ -1,9 +1,9 @@
 # ⚡ Multi-Protocol VPN Aggregator
 
-[![nodes](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBarqDev1%2Fvless-aggregator%2Fmain%2Fstats.json&query=%24.alive&label=nodes&color=brightgreen&cacheSeconds=300)](https://github.com/BarqDev1/vless-aggregator)
-[![vless](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBarqDev1%2Fvless-aggregator%2Fmain%2Fstats.json&query=%24.alive_by_protocol.vless&label=vless&color=blue&cacheSeconds=300)](https://github.com/BarqDev1/vless-aggregator)
-[![hy2](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBarqDev1%2Fvless-aggregator%2Fmain%2Fstats.json&query=%24.alive_by_protocol.hysteria2&label=hy2&color=purple&cacheSeconds=300)](https://github.com/BarqDev1/vless-aggregator)
-[![p50](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBarqDev1%2Fvless-aggregator%2Fmain%2Fstats.json&query=%24.latency_ms.p50&label=p50%20ms&color=orange&cacheSeconds=300)](https://github.com/BarqDev1/vless-aggregator)
+[![nodes](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBarqDev1%2Fvless-aggregator%2Fmain%2Fstate%2Fstats.json&query=%24.alive&label=nodes&color=brightgreen&cacheSeconds=300)](https://github.com/BarqDev1/vless-aggregator)
+[![vless](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBarqDev1%2Fvless-aggregator%2Fmain%2Fstate%2Fstats.json&query=%24.alive_by_protocol.vless&label=vless&color=blue&cacheSeconds=300)](https://github.com/BarqDev1/vless-aggregator)
+[![hy2](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBarqDev1%2Fvless-aggregator%2Fmain%2Fstate%2Fstats.json&query=%24.alive_by_protocol.hysteria2&label=hy2&color=purple&cacheSeconds=300)](https://github.com/BarqDev1/vless-aggregator)
+[![p50](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBarqDev1%2Fvless-aggregator%2Fmain%2Fstate%2Fstats.json&query=%24.latency_ms.p50&label=p50%20ms&color=orange&cacheSeconds=300)](https://github.com/BarqDev1/vless-aggregator)
 
 Автоматический сборщик, валидатор, дедупликатор и чекер VPN-конфигов из открытых источников.
 Поддерживаются **VLESS**, **Trojan** и **Hysteria 2**. Флаги стран нормализуются для балансировщиков Remnawave.
@@ -25,40 +25,65 @@
   копий одной ноды в подписке нет.
 - 🧱 **Стабильность 2 из 3:** новая нода публикуется после **2 успешных прогонов из последних 3**.
   Существующая нода переживает одно падение в истории и возвращается после следующего успеха.
-  Состояние — в `node_history.json`.
+  Состояние — в `state/node_history.json`.
 - 🌍 **Разнообразие:** после проверки ограничивается число нод на `/24` (`MAX_PER_SUBNET`) и на домен
   (`MAX_PER_DOMAIN`), чтобы один хостер не занимал всю подписку.
 - 📈 **Сортировка по задержке:** ноды сортируются по времени E2E-запроса (или handshake, если E2E выключен);
-  p50/p90 пишутся в `stats.json`.
-- 🩺 **Атрибуция источников:** `stats.json` показывает `raw / unique / alive / yield` по каждому источнику.
-  Источник с нулевой отдачей 3 прогона подряд уходит в карантин на 24 часа (`source_health.json`).
+  p50/p90 пишутся в `state/stats.json`.
+- 🩺 **Атрибуция источников:** `state/stats.json` показывает `raw / unique / alive / yield` по каждому источнику.
+  Источник с нулевой отдачей 3 прогона подряд уходит в карантин на 24 часа (`state/source_health.json`).
 - 🏳️ **Флаги стран:** эмодзи или ISO-код в remark → нормализованный флаг для группировки в Remnawave.
 - 🛡️ **Защита от деградации:** общий и **per-protocol** guard: падение больше `MAX_DROP_RATIO`
   или исчезновение протокола (при прошлом количестве ≥ `PROTOCOL_MIN_ALIVE`) останавливает публикацию.
   Первый прогон с включённым E2E задаёт новый baseline и не сравнивается со старым protocol-only набором.
-- 📊 **Статистика прогона** в `stats.json` + история в `history.json` + состояние источников в `source_health.json`.
-- 🧾 **Метаданные подписки** в `meta.json` (`profile-title`, интервал обновления, support URL, ссылки).
+- 📊 **Статистика прогона** в `state/stats.json` + история в `state/history.json` + состояние источников в `state/source_health.json`.
+- 🧾 **Метаданные подписки** в `state/meta.json` (`profile-title`, интервал обновления, support URL, ссылки).
 - 🚨 **Алерты:** при падении workflow создаётся/обновляется GitHub Issue.
 - 🤖 **GitHub Actions:** линт, `mypy`, тесты с coverage ≥50%, `pip-audit`, затем обновление
-  **каждые 30 минут** (`cron: */30 * * * *`) и при изменении `sources.txt`.
+  **каждые 30 минут** (`cron: */30 * * * *`) и при изменении `config/sources.txt`.
   Зависимости зафиксированы в `requirements.lock`, обновления — через Dependabot.
   Сгенерированные файлы проверяются тестами до коммита; действия закреплены по SHA,
   параллельные запуски запрещены, история и метаданные коммитятся вместе с прогоном.
 
 ---
 
-## 🔗 Готовые ссылки для подключения (Raw GitHub)
+## 📁 Структура проекта
+
+```text
+.
+├── config/sources.txt          # список источников
+├── src/vpn_aggregator/         # код
+│   ├── collector.py
+│   ├── e2e.py
+│   ├── __init__.py
+│   └── __main__.py
+├── state/                     # состояние (коммитится)
+│   ├── stats.json
+│   ├── meta.json
+│   ├── history.json
+│   ├── node_history.json
+│   └── source_health.json
+├── tests/
+├── vless_universal.txt        # публичные подписки — намеренно в корне,
+├── hysteria2.txt              # чтобы старые raw-URL не ломались
+└── all_universal.txt
+```
+
+Запуск: `PYTHONPATH=src python -m vpn_aggregator`.
+
+---
+
 
 | Файл | Описание | Для чего использовать |
 |---|---|---|
 | **`vless_universal.txt`** | Только VLESS | **Для балансировщиков в Remnawave** («Сгруппировать в балансировщики» **ВКЛ**) |
 | **`hysteria2.txt`** | Только Hysteria 2 | Для прямого добавления в подписку («Сгруппировать в балансировщики» **ВЫКЛ**) |
 | **`all_universal.txt`** | Все проверенные ноды (VLESS + Trojan + Hy2) | Для прямого добавления всех протоколов |
-| **`stats.json`** | Статистика последнего прогона | Для мониторинга качества |
-| **`history.json`** | История прогонов (alive, latency, delta) | Для графиков и бейджей |
-| **`meta.json`** | Метаданные подписки | Для nginx/Remnawave/клиентов |
-| **`node_history.json`** | История стабильности нод (2 из 3) | Для диагностики |
-| **`source_health.json`** | Состояние источников и карантин | Для диагностики и ручного снятия карантина |
+| **`state/stats.json`** | Статистика последнего прогона | Для мониторинга качества |
+| **`state/history.json`** | История прогонов (alive, latency, delta) | Для графиков и бейджей |
+| **`state/meta.json`** | Метаданные подписки | Для nginx/Remnawave/клиентов |
+| **`state/node_history.json`** | История стабильности нод (2 из 3) | Для диагностики |
+| **`state/source_health.json`** | Состояние источников и карантин | Для диагностики и ручного снятия карантина |
 
 > ⚠️ Не добавляйте одновременно `all_universal.txt` и `vless_universal.txt` в один клиент:
 > `all` уже содержит все VLESS, поэтому в списке появятся визуальные дубликаты.
@@ -70,14 +95,16 @@
 https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/vless_universal.txt
 https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/hysteria2.txt
 https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/all_universal.txt
-https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/stats.json
+https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/state/stats.json
+https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/state/meta.json
+https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/state/history.json
 ```
 
 ---
 
 ## 🧾 Метаданные подписки
 
-`meta.json` содержит значения, которые обычно отдаются HTTP-заголовками:
+`state/meta.json` содержит значения, которые обычно отдаются HTTP-заголовками:
 
 ```json
 {
@@ -105,10 +132,10 @@ add_header support-url "https://github.com/BarqDev1/vless-aggregator/issues";
 
 ## 📈 История и наблюдаемость
 
-- `history.json` — по одной записи на прогон: `alive`, `protocols`, `delta`, `latency_p50`,
+- `state/history.json` — по одной записи на прогон: `alive`, `protocols`, `delta`, `latency_p50`,
   `e2e_verified`, `held_back`, `sources_active`.
-- `node_history.json` — хешированные ID нод и последние 3 результата (2 из 3).
-- Бейджи в шапке README обновляются из `stats.json` через shields.io.
+- `state/node_history.json` — хешированные ID нод и последние 3 результата (2 из 3).
+- Бейджи в шапке README обновляются из `state/stats.json` через shields.io.
 
 ---
 
@@ -123,7 +150,7 @@ add_header support-url "https://github.com/BarqDev1/vless-aggregator/issues";
 
 В CI (`E2E_VERIFY=1`) публикуются только ноды, прошедшие E2E: `http://www.gstatic.com/generate_204`
 возвращает `204/200` через туннель. Если E2E выключен, остаётся только protocol-level проверка.
-Один неподдерживаемый транспорт может остаться с protocol-level статусом — это видно в `stats.json`
+Один неподдерживаемый транспорт может остаться с protocol-level статусом — это видно в `state/stats.json`
 (`e2e.unsupported`).
 
 E2E-клиент: **Xray-core v26.10.21**.
@@ -141,7 +168,7 @@ E2E-клиент: **Xray-core v26.10.21**.
 
 ## ➕ Как добавлять новые источники
 
-Откройте `sources.txt` и добавьте одну ссылку на строку:
+Откройте `config/sources.txt` и добавьте одну ссылку на строку:
 
 ```text
 # Git-репозиторий (клонируется рекурсивно, без API-лимитов)
@@ -152,7 +179,7 @@ https://raw.githubusercontent.com/.../some_list.txt
 https://domain.com/sub/token
 ```
 
-Строки, начинающиеся с `#`, игнорируются. После изменения `sources.txt` GitHub Actions
+Строки, начинающиеся с `#`, игнорируются. После изменения `config/sources.txt` GitHub Actions
 автоматически запустит тесты и обновит файлы.
 
 ---
@@ -161,11 +188,11 @@ https://domain.com/sub/token
 
 | Переменная | По умолчанию | Назначение |
 |---|---|---|
-| `SOURCES_FILE` | `sources.txt` | Список источников |
+| `SOURCES_FILE` | `config/sources.txt` | Список источников |
 | `VLESS_OUTPUT` | `vless_universal.txt` | Выход VLESS |
 | `HY2_OUTPUT` | `hysteria2.txt` | Выход Hysteria2 |
 | `ALL_OUTPUT` | `all_universal.txt` | Выход всех протоколов |
-| `STATS_OUTPUT` | `stats.json` | Статистика |
+| `STATS_OUTPUT` | `state/stats.json` | Статистика |
 | `PING_TIMEOUT` | `3.0` | Таймаут TCP-проверки, сек |
 | `QUIC_TIMEOUT` | `5.0` | Таймаут QUIC-handshake, сек |
 | `CHECK_ATTEMPTS` | `2` | Попыток проверки на ноду |
@@ -181,16 +208,16 @@ https://domain.com/sub/token
 | `MAX_PER_SUBNET` | `3` | Максимум нод на IPv4 `/24` или IPv6 `/48` |
 | `MAX_PER_DOMAIN` | `10` | Максимум нод на registrable domain |
 | `MAX_REMARK_LEN` | `120` | Максимальная длина remark |
-| `SOURCE_HEALTH_FILE` | `source_health.json` | Состояние источников и карантина |
+| `SOURCE_HEALTH_FILE` | `state/source_health.json` | Состояние источников и карантина |
 | `SOURCE_FAILURE_THRESHOLD` | `3` | Прогонов с нулевой отдачей до карантина |
 | `SOURCE_QUARANTINE_HOURS` | `24` | Длительность карантина, часы |
-| `NODE_HISTORY_FILE` | `node_history.json` | История стабильности нод |
+| `NODE_HISTORY_FILE` | `state/node_history.json` | История стабильности нод |
 | `NODE_MIN_RECENT_SUCCESS` | `2` | Сколько успехов нужно в окне |
 | `NODE_RECENT_WINDOW` | `3` | Размер окна проверок |
 | `NODE_HISTORY_TTL_DAYS` | `30` | Сколько дней хранить историю нод |
-| `HISTORY_FILE` | `history.json` | История прогонов |
+| `HISTORY_FILE` | `state/history.json` | История прогонов |
 | `HISTORY_MAX_RUNS` | `1440` | Максимум записей истории (30 дней при 30-мин интервале) |
-| `META_FILE` | `meta.json` | Метаданные подписки |
+| `META_FILE` | `state/meta.json` | Метаданные подписки |
 | `PROFILE_TITLE` | `BarqDev Multi-Protocol VPN` | Название профиля |
 | `PROFILE_UPDATE_INTERVAL` | `0.5` | Интервал обновления, часы (30 минут) |
 | `SUPPORT_URL` | GitHub Issues | Support URL |
@@ -213,10 +240,10 @@ source .venv/bin/activate
 pip install -r requirements.txt -r requirements-dev.txt
 
 # Быстрый прогон без E2E (по умолчанию)
-python collector.py
+PYTHONPATH=src python -m vpn_aggregator
 
 # Полный прогон с E2E (нужен бинарник Xray 26.10.21)
-E2E_VERIFY=1 XRAY_BIN=/path/to/xray python collector.py
+E2E_VERIFY=1 XRAY_BIN=/path/to/xray PYTHONPATH=src python -m vpn_aggregator
 
 pytest
 ruff check .

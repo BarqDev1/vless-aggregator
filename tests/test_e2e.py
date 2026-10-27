@@ -1,7 +1,7 @@
 import pytest
 
-import collector as c
-import e2e
+from vpn_aggregator import collector as c
+from vpn_aggregator import e2e
 
 
 def _vless(extra: str) -> dict:

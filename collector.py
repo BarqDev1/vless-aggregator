@@ -48,8 +48,8 @@ try:  # Hysteria2 runs over QUIC; without aioquic we cannot check it honestly.
 
     HAS_AIOQUIC = True
 except ImportError:  # pragma: no cover - exercised only without the dependency
-    quic_connect = None
-    QuicConfiguration = None
+    quic_connect = None  # type: ignore[assignment]
+    QuicConfiguration = None  # type: ignore[misc,assignment]
     HAS_AIOQUIC = False
 
 
@@ -59,6 +59,16 @@ HY2_OUTPUT = os.getenv("HY2_OUTPUT", "hysteria2.txt")
 ALL_OUTPUT = os.getenv("ALL_OUTPUT", "all_universal.txt")
 STATS_OUTPUT = os.getenv("STATS_OUTPUT", "stats.json")
 SOURCE_HEALTH_FILE = os.getenv("SOURCE_HEALTH_FILE", "source_health.json")
+NODE_HISTORY_FILE = os.getenv("NODE_HISTORY_FILE", "node_history.json")
+HISTORY_FILE = os.getenv("HISTORY_FILE", "history.json")
+META_FILE = os.getenv("META_FILE", "meta.json")
+
+PROFILE_TITLE = os.getenv("PROFILE_TITLE", "BarqDev Multi-Protocol VPN")
+SUPPORT_URL = os.getenv(
+    "SUPPORT_URL", "https://github.com/BarqDev1/vless-aggregator/issues"
+)
+PROFILE_UPDATE_INTERVAL = int(os.getenv("PROFILE_UPDATE_INTERVAL", "1"))
+HOME_URL = os.getenv("HOME_URL", "https://github.com/BarqDev1/vless-aggregator")
 
 TIMEOUT = float(os.getenv("PING_TIMEOUT", "3.0"))
 QUIC_TIMEOUT = float(os.getenv("QUIC_TIMEOUT", "5.0"))
@@ -76,6 +86,12 @@ MAX_PER_ENDPOINT = max(1, int(os.getenv("MAX_PER_ENDPOINT", "3")))
 MAX_PER_SUBNET = max(1, int(os.getenv("MAX_PER_SUBNET", "3")))
 MAX_PER_DOMAIN = max(1, int(os.getenv("MAX_PER_DOMAIN", "10")))
 MAX_REMARK_LEN = int(os.getenv("MAX_REMARK_LEN", "120"))
+
+NODE_MIN_RECENT_SUCCESS = max(1, int(os.getenv("NODE_MIN_RECENT_SUCCESS", "2")))
+NODE_RECENT_WINDOW = max(1, int(os.getenv("NODE_RECENT_WINDOW", "3")))
+NODE_HISTORY_TTL_DAYS = max(1, int(os.getenv("NODE_HISTORY_TTL_DAYS", "30")))
+MAX_NODE_HISTORY = max(100, int(os.getenv("MAX_NODE_HISTORY", "10000")))
+HISTORY_MAX_RUNS = max(24, int(os.getenv("HISTORY_MAX_RUNS", "720")))
 
 PROTOCOL_MIN_ALIVE = max(1, int(os.getenv("PROTOCOL_MIN_ALIVE", "3")))
 PROTOCOL_MAX_DROP = float(os.getenv("PROTOCOL_MAX_DROP", "0.7"))
@@ -858,6 +874,124 @@ def update_source_health(health: dict, urls: List[str], source_stats: Dict[str, 
     return {"updated_at": now.isoformat(timespec="seconds"), "sources": sources}
 
 
+def node_history_id(node: dict) -> str:
+    """Stable, non-reversible ID for node history (credentials are not stored)."""
+    return hashlib.sha256(node["dedup_key"].encode("utf-8")).hexdigest()[:32]
+
+
+def load_history_list(path: str) -> List[dict]:
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+        return [entry for entry in data if isinstance(entry, dict)] if isinstance(data, list) else []
+    except (FileNotFoundError, ValueError, OSError):
+        return []
+
+
+def load_node_history(path: str) -> dict:
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+        if isinstance(data, dict) and isinstance(data.get("nodes"), dict):
+            return data
+    except (FileNotFoundError, ValueError, OSError):
+        pass
+    return {"updated_at": None, "nodes": {}}
+
+
+def update_node_history(
+    state: dict,
+    tested_nodes: List[dict],
+    verified_nodes: List[dict],
+    now: datetime,
+) -> Tuple[dict, set, Dict[str, int]]:
+    """Implements the 2-of-3 stability policy and returns publishable node IDs."""
+    raw_nodes = state.get("nodes")
+    old_nodes: Dict[str, dict] = raw_nodes if isinstance(raw_nodes, dict) else {}
+    nodes: Dict[str, dict] = {str(key): dict(value) for key, value in old_nodes.items()}
+    bootstrap = not nodes
+
+    tested_ids = {node_history_id(node) for node in tested_nodes}
+    verified_ids = {node_history_id(node) for node in verified_nodes}
+    timestamp = now.isoformat(timespec="seconds")
+
+    for node in verified_nodes:
+        node_id = node_history_id(node)
+        entry = nodes.setdefault(
+            node_id,
+            {"recent": [], "successes": 0, "failures": 0, "first_seen": timestamp},
+        )
+        recent = [True, True] if bootstrap else [*entry.get("recent", []), True]
+        entry["recent"] = recent[-NODE_RECENT_WINDOW:]
+        entry["successes"] = int(entry.get("successes", 0)) + 1
+        entry["last_seen"] = timestamp
+        entry["last_success"] = timestamp
+        nodes[node_id] = entry
+
+    for node_id in tested_ids - verified_ids:
+        failed_entry = nodes.get(node_id)
+        if failed_entry is None:
+            continue
+        failed_entry["recent"] = [*failed_entry.get("recent", []), False][-NODE_RECENT_WINDOW:]
+        failed_entry["failures"] = int(failed_entry.get("failures", 0)) + 1
+        failed_entry["last_seen"] = timestamp
+
+    cutoff = now - timedelta(days=NODE_HISTORY_TTL_DAYS)
+    pruned = 0
+    for node_id, entry in list(nodes.items()):
+        last_seen = _parse_datetime(entry.get("last_seen"))
+        if last_seen and last_seen < cutoff:
+            del nodes[node_id]
+            pruned += 1
+
+    if len(nodes) > MAX_NODE_HISTORY:
+        newest = sorted(
+            nodes.items(),
+            key=lambda item: item[1].get("last_seen") or "",
+            reverse=True,
+        )[:MAX_NODE_HISTORY]
+        pruned += len(nodes) - len(newest)
+        nodes = dict(newest)
+
+    eligible: set = set()
+    for node_id in verified_ids:
+        entry = nodes.get(node_id, {})
+        recent = entry.get("recent", [])[-NODE_RECENT_WINDOW:]
+        if sum(bool(result) for result in recent) >= NODE_MIN_RECENT_SUCCESS:
+            eligible.add(node_id)
+
+    stats = {
+        "tracked": len(nodes),
+        "bootstrap": int(bootstrap),
+        "verified": len(verified_ids),
+        "eligible": len(eligible),
+        "held_back": len(verified_ids - eligible),
+        "pruned": pruned,
+    }
+    return {"updated_at": timestamp, "nodes": nodes}, eligible, stats
+
+
+def build_meta(alive_counts: Dict[str, int], total: int, now: datetime) -> dict:
+    raw_base = (
+        "https://raw.githubusercontent.com/"
+        f"{os.getenv('GITHUB_REPOSITORY', 'BarqDev1/vless-aggregator')}/main"
+    )
+    return {
+        "profile_title": PROFILE_TITLE,
+        "profile_update_interval": PROFILE_UPDATE_INTERVAL,
+        "support_url": SUPPORT_URL,
+        "home_url": HOME_URL,
+        "subscription_userinfo": None,
+        "updated_at": now.isoformat(timespec="seconds"),
+        "counts": {"total": total, **dict(sorted(alive_counts.items()))},
+        "subscriptions": {
+            "all": f"{raw_base}/all_universal.txt",
+            "vless": f"{raw_base}/vless_universal.txt",
+            "hysteria2": f"{raw_base}/hysteria2.txt",
+        },
+    }
+
+
 def _percentile(values: List[float], quantile: float) -> Optional[float]:
     if not values:
         return None
@@ -867,16 +1001,16 @@ def _percentile(values: List[float], quantile: float) -> Optional[float]:
 
 
 def latency_summary(nodes: List[dict]) -> Dict[str, float]:
-    values = [
-        node["e2e_ms"] if node.get("e2e_ms") is not None else node.get("latency_ms")
-        for node in nodes
-    ]
-    values = [value for value in values if value is not None]
+    values: List[float] = []
+    for node in nodes:
+        value = node.get("e2e_ms") if node.get("e2e_ms") is not None else node.get("latency_ms")
+        if isinstance(value, (int, float)):
+            values.append(float(value))
     if not values:
         return {}
     return {
-        "p50": _percentile(values, 50),
-        "p90": _percentile(values, 90),
+        "p50": _percentile(values, 50) or 0.0,
+        "p90": _percentile(values, 90) or 0.0,
         "min": round(min(values), 1),
         "max": round(max(values), 1),
     }
@@ -889,7 +1023,7 @@ def write_atomic(path: str, lines: Iterable[str]) -> None:
     os.replace(tmp, path)
 
 
-def write_json_atomic(path: str, payload: dict) -> None:
+def write_json_atomic(path: str, payload) -> None:
     tmp = f"{path}.tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2, sort_keys=True)
@@ -1090,6 +1224,18 @@ async def main() -> int:
             f"unsupported: {e2e_status['unsupported']} ({e2e_status['duration_sec']}s)"
         )
 
+    node_history, eligible_ids, stability_stats = update_node_history(
+        load_node_history(NODE_HISTORY_FILE), candidates, alive_nodes, now
+    )
+    if stability_stats["held_back"]:
+        logger.info(
+            f"Stability filter: {stability_stats['held_back']} verified nodes held back "
+            f"(need {NODE_MIN_RECENT_SUCCESS}/{NODE_RECENT_WINDOW} successes)."
+        )
+    alive_nodes = [
+        node for node in alive_nodes if node_history_id(node) in eligible_ids
+    ]
+
     alive_nodes, diversity_removed = cap_diversity(alive_nodes)
     cap_counts.update(diversity_removed)
     if diversity_removed["subnet"] or diversity_removed["domain"]:
@@ -1128,19 +1274,19 @@ async def main() -> int:
         entry = health.get("sources", {}).get(url, {})
         active = url in active_set
         if active:
-            raw = raw_by_source.get(url, 0)
-            unique = unique_by_source.get(url, 0)
-            alive = alive_by_source.get(url, 0)
+            raw_count = int(raw_by_source.get(url, 0))
+            unique_count = int(unique_by_source.get(url, 0))
+            alive_count = int(alive_by_source.get(url, 0))
         else:
-            raw = int(entry.get("last_raw", 0))
-            unique = int(entry.get("last_unique", 0))
-            alive = int(entry.get("last_alive", 0))
+            raw_count = int(entry.get("last_raw", 0))
+            unique_count = int(entry.get("last_unique", 0))
+            alive_count = int(entry.get("last_alive", 0))
         source_stats[url] = {
             "active": active,
-            "raw": raw,
-            "unique": unique,
-            "alive": alive,
-            "yield": round(alive / raw, 3) if raw else 0.0,
+            "raw": raw_count,
+            "unique": unique_count,
+            "alive": alive_count,
+            "yield": round(alive_count / raw_count, 3) if raw_count else 0.0,
             "quarantined": bool(
                 (until := _parse_datetime(entry.get("quarantined_until"))) and until > now
             ),
@@ -1185,6 +1331,7 @@ async def main() -> int:
     logger.info(f"Exported {len(all_lines)} all-protocol nodes -> {ALL_OUTPUT}")
 
     elapsed = round(time.monotonic() - started, 1)
+    overall_latency = latency_summary(alive_nodes)
     write_json_atomic(
         STATS_OUTPUT,
         {
@@ -1213,13 +1360,14 @@ async def main() -> int:
             "alive": len(alive_nodes),
             "alive_by_protocol": dict(sorted(alive_counts.items())),
             "top_countries": dict(sorted(country_counts.items(), key=lambda item: -item[1])[:15]),
-            "latency_ms": latency_summary(alive_nodes),
+            "latency_ms": overall_latency,
             "latency_by_protocol": {
                 protocol: latency_summary([node for node in alive_nodes if node["scheme"] == protocol])
                 for protocol in sorted(alive_counts)
             },
             "previous_total": previous_total,
             "baseline_reset": baseline_reset,
+            "stability": stability_stats,
             "source_stats": source_stats,
             "checks": {
                 "vless": "xray_e2e" if E2E_VERIFY else "tcp_connect",
@@ -1234,8 +1382,33 @@ async def main() -> int:
     )
     new_health = update_source_health(health, source_urls, source_stats, now)
     write_json_atomic(SOURCE_HEALTH_FILE, new_health)
+
+    history_entries = load_history_list(HISTORY_FILE)
+    history_entries.append(
+        {
+            "timestamp": now.isoformat(timespec="seconds"),
+            "alive": len(alive_nodes),
+            "protocols": dict(sorted(alive_counts.items())),
+            "delta": len(alive_nodes) - previous_total,
+            "reachable": reachable,
+            "e2e_verified": e2e_status["verified"],
+            "e2e_failed": e2e_status["failed"],
+            "latency_p50": overall_latency.get("p50"),
+            "sources_active": len(active_urls),
+            "sources_quarantined": len(skipped_urls),
+            "held_back": stability_stats["held_back"],
+        }
+    )
+    history_entries = history_entries[-HISTORY_MAX_RUNS:]
+    write_json_atomic(HISTORY_FILE, history_entries)
+    write_json_atomic(NODE_HISTORY_FILE, node_history)
+    write_json_atomic(META_FILE, build_meta(alive_counts, len(alive_nodes), now))
+
     logger.info(f"Wrote run statistics -> {STATS_OUTPUT} ({elapsed}s)")
     logger.info(f"Wrote source health -> {SOURCE_HEALTH_FILE}")
+    logger.info(f"Wrote node history -> {NODE_HISTORY_FILE}")
+    logger.info(f"Wrote run history -> {HISTORY_FILE}")
+    logger.info(f"Wrote subscription metadata -> {META_FILE}")
     return 0
 
 

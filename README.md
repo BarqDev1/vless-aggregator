@@ -1,5 +1,10 @@
 # ⚡ Multi-Protocol VPN Aggregator
 
+[![nodes](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBarqDev1%2Fvless-aggregator%2Fmain%2Fstats.json&query=%24.alive&label=nodes&color=brightgreen&cacheSeconds=300)](https://github.com/BarqDev1/vless-aggregator)
+[![vless](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBarqDev1%2Fvless-aggregator%2Fmain%2Fstats.json&query=%24.alive_by_protocol.vless&label=vless&color=blue&cacheSeconds=300)](https://github.com/BarqDev1/vless-aggregator)
+[![hy2](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBarqDev1%2Fvless-aggregator%2Fmain%2Fstats.json&query=%24.alive_by_protocol.hysteria2&label=hy2&color=purple&cacheSeconds=300)](https://github.com/BarqDev1/vless-aggregator)
+[![p50](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBarqDev1%2Fvless-aggregator%2Fmain%2Fstats.json&query=%24.latency_ms.p50&label=p50%20ms&color=orange&cacheSeconds=300)](https://github.com/BarqDev1/vless-aggregator)
+
 Автоматический сборщик, валидатор, дедупликатор и чекер VPN-конфигов из открытых источников.
 Поддерживаются **VLESS**, **Trojan** и **Hysteria 2**. Флаги стран нормализуются для балансировщиков Remnawave.
 
@@ -16,6 +21,9 @@
 - 🧹 **Точная дедупликация:** ключ включает протокол, хост, порт, учётные данные, SNI и все параметры транспорта
   (`type`, `security`, `path`, `flow` …). Разные UUID на одном сервере **не** схлопываются.
   На один эндпоинт (`протокол + host:port + SNI`) публикуется не больше `MAX_PER_ENDPOINT` вариантов.
+- 🧱 **Стабильность 2 из 3:** новая нода публикуется после **2 успешных прогонов из последних 3**.
+  Существующая нода переживает одно падение в истории и возвращается после следующего успеха.
+  Состояние — в `node_history.json`.
 - 🌍 **Разнообразие:** после проверки ограничивается число нод на `/24` (`MAX_PER_SUBNET`) и на домен
   (`MAX_PER_DOMAIN`), чтобы один хостер не занимал всю подписку.
 - 📈 **Сортировка по задержке:** ноды сортируются по времени E2E-запроса (или handshake, если E2E выключен);
@@ -26,11 +34,14 @@
 - 🛡️ **Защита от деградации:** общий и **per-protocol** guard: падение больше `MAX_DROP_RATIO`
   или исчезновение протокола (при прошлом количестве ≥ `PROTOCOL_MIN_ALIVE`) останавливает публикацию.
   Первый прогон с включённым E2E задаёт новый baseline и не сравнивается со старым protocol-only набором.
-- 📊 **Статистика прогона** в `stats.json` + состояние источников в `source_health.json`.
+- 📊 **Статистика прогона** в `stats.json` + история в `history.json` + состояние источников в `source_health.json`.
+- 🧾 **Метаданные подписки** в `meta.json` (`profile-title`, интервал обновления, support URL, ссылки).
 - 🚨 **Алерты:** при падении workflow создаётся/обновляется GitHub Issue.
-- 🤖 **GitHub Actions:** линт + тесты, затем обновление **каждый час** (`cron: 0 * * * *`) и при изменении `sources.txt`.
+- 🤖 **GitHub Actions:** линт, `mypy`, тесты с coverage ≥50%, `pip-audit`, затем обновление
+  **каждый час** (`cron: 0 * * * *`) и при изменении `sources.txt`.
+  Зависимости зафиксированы в `requirements.lock`, обновления — через Dependabot.
   Сгенерированные файлы проверяются тестами до коммита; действия закреплены по SHA,
-  параллельные запуски запрещены, `stats.json` коммитится только вместе с изменением данных.
+  параллельные запуски запрещены, история и метаданные коммитятся вместе с прогоном.
 
 ---
 
@@ -42,6 +53,9 @@
 | **`hysteria2.txt`** | Только Hysteria 2 | Для прямого добавления в подписку («Сгруппировать в балансировщики» **ВЫКЛ**) |
 | **`all_universal.txt`** | Все проверенные ноды (VLESS + Trojan + Hy2) | Для прямого добавления всех протоколов |
 | **`stats.json`** | Статистика последнего прогона | Для мониторинга качества |
+| **`history.json`** | История прогонов (alive, latency, delta) | Для графиков и бейджей |
+| **`meta.json`** | Метаданные подписки | Для nginx/Remnawave/клиентов |
+| **`node_history.json`** | История стабильности нод (2 из 3) | Для диагностики |
 | **`source_health.json`** | Состояние источников и карантин | Для диагностики и ручного снятия карантина |
 
 ### Прямые URL:
@@ -52,6 +66,43 @@ https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/hysteria2.txt
 https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/all_universal.txt
 https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/stats.json
 ```
+
+---
+
+## 🧾 Метаданные подписки
+
+`meta.json` содержит значения, которые обычно отдаются HTTP-заголовками:
+
+```json
+{
+  "profile_title": "BarqDev Multi-Protocol VPN",
+  "profile_update_interval": 1,
+  "support_url": "https://github.com/BarqDev1/vless-aggregator/issues",
+  "home_url": "https://github.com/BarqDev1/vless-aggregator",
+  "subscriptions": {
+    "all": ".../all_universal.txt",
+    "vless": ".../vless_universal.txt",
+    "hysteria2": ".../hysteria2.txt"
+  }
+}
+```
+
+GitHub raw **не позволяет задавать HTTP-заголовки**, поэтому `profile-title` и
+`profile-update-interval` нельзя отдать напрямую. Если подписку раздаёт nginx/Remnawave,
+проксируйте файл и добавляйте заголовки:
+
+```nginx
+add_header profile-title "BarqDev Multi-Protocol VPN";
+add_header profile-update-interval 1;
+add_header support-url "https://github.com/BarqDev1/vless-aggregator/issues";
+```
+
+## 📈 История и наблюдаемость
+
+- `history.json` — по одной записи на прогон: `alive`, `protocols`, `delta`, `latency_p50`,
+  `e2e_verified`, `held_back`, `sources_active`.
+- `node_history.json` — хешированные ID нод и последние 3 результата (2 из 3).
+- Бейджи в шапке README обновляются из `stats.json` через shields.io.
 
 ---
 
@@ -126,6 +177,17 @@ https://domain.com/sub/token
 | `SOURCE_HEALTH_FILE` | `source_health.json` | Состояние источников и карантина |
 | `SOURCE_FAILURE_THRESHOLD` | `3` | Прогонов с нулевой отдачей до карантина |
 | `SOURCE_QUARANTINE_HOURS` | `24` | Длительность карантина, часы |
+| `NODE_HISTORY_FILE` | `node_history.json` | История стабильности нод |
+| `NODE_MIN_RECENT_SUCCESS` | `2` | Сколько успехов нужно в окне |
+| `NODE_RECENT_WINDOW` | `3` | Размер окна проверок |
+| `NODE_HISTORY_TTL_DAYS` | `30` | Сколько дней хранить историю нод |
+| `HISTORY_FILE` | `history.json` | История прогонов |
+| `HISTORY_MAX_RUNS` | `720` | Максимум записей истории (30 дней) |
+| `META_FILE` | `meta.json` | Метаданные подписки |
+| `PROFILE_TITLE` | `BarqDev Multi-Protocol VPN` | Название профиля |
+| `PROFILE_UPDATE_INTERVAL` | `1` | Интервал обновления, часы |
+| `SUPPORT_URL` | GitHub Issues | Support URL |
+| `HOME_URL` | GitHub репозиторий | Home URL |
 | `E2E_VERIFY` | `0` | Включить E2E-проверку (`1` в CI) |
 | `E2E_CONCURRENCY` | `6` | Параллельных E2E-клиентов |
 | `E2E_TIMEOUT` | `7.0` | Таймаут HTTP-запроса через туннель, сек |

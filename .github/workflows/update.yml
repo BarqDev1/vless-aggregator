@@ -30,13 +30,19 @@ jobs:
           cache: 'pip'
 
       - name: Install dependencies
-        run: python -m pip install -r requirements.txt -r requirements-dev.txt
+        run: python -m pip install -r requirements.lock -r requirements-dev.txt
 
       - name: Lint
         run: ruff check .
 
+      - name: Type check
+        run: mypy collector.py e2e.py
+
       - name: Test
-        run: pytest
+        run: pytest --cov --cov-report=term-missing --cov-fail-under=50
+
+      - name: Dependency audit
+        run: pip-audit -r requirements.lock
 
   update:
     needs: test
@@ -60,7 +66,7 @@ jobs:
           cache: 'pip'
 
       - name: Install dependencies
-        run: python -m pip install -r requirements.txt -r requirements-dev.txt
+        run: python -m pip install -r requirements.lock -r requirements-dev.txt
 
       - name: Install e2e client
         run: |
@@ -81,23 +87,18 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           mkdir -p /tmp/generated
-          cp vless_universal.txt hysteria2.txt all_universal.txt stats.json source_health.json /tmp/generated/
+          cp vless_universal.txt hysteria2.txt all_universal.txt stats.json source_health.json \
+             node_history.json history.json meta.json /tmp/generated/
 
           push_generated() {
             git fetch -q origin main
             git reset --hard -q FETCH_HEAD
             cp /tmp/generated/* .
-            git add vless_universal.txt hysteria2.txt all_universal.txt
+            git add vless_universal.txt hysteria2.txt all_universal.txt \
+                    stats.json source_health.json node_history.json history.json meta.json
             if git diff --staged --quiet; then
-              if ! git diff --quiet -- source_health.json; then
-                git add source_health.json
-                git commit -m "Update source health [skip ci]"
-                git push
-              else
-                echo "No changes to commit"
-              fi
+              echo "No changes to commit"
             else
-              git add stats.json source_health.json
               git commit -m "Auto-update VPN nodes (VLESS, Hy2, Trojan) [skip ci]"
               git push
             fi

@@ -11,3 +11,15 @@ ignore = ["E501"]
 testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-q"
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+check_untyped_defs = true
+
+[tool.coverage.run]
+source = ["collector", "e2e"]
+
+[tool.coverage.report]
+fail_under = 50
+show_missing = true

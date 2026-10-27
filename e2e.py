@@ -146,7 +146,7 @@ def build_xray_config(node: dict, listen_port: int) -> Optional[dict]:
         certificate = node.get("tls_cert_sha256")
         if not certificate:
             return None
-        outbound: Dict[str, object] = {
+        hy2_outbound: Dict[str, object] = {
             "protocol": "hysteria",
             "settings": {
                 "version": 2,
@@ -169,7 +169,7 @@ def build_xray_config(node: dict, listen_port: int) -> Optional[dict]:
         return {
             "log": {"loglevel": "error"},
             "inbounds": [inbound],
-            "outbounds": [outbound],
+            "outbounds": [hy2_outbound],
         }
 
     if node.get("scheme") not in ("vless", "trojan"):

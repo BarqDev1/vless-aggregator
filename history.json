@@ -119,20 +119,20 @@
     "timestamp": "2026-10-27T12:23:57+00:00"
   },
   {
-    "alive": 85,
-    "delta": -1,
-    "e2e_failed": 103,
-    "e2e_verified": 147,
-    "held_back": 17,
-    "latency_p50": 662.0,
+    "alive": 90,
+    "delta": 4,
+    "e2e_failed": 94,
+    "e2e_verified": 150,
+    "held_back": 12,
+    "latency_p50": 790.4,
     "protocols": {
-      "hysteria2": 8,
-      "trojan": 9,
-      "vless": 68
+      "hysteria2": 7,
+      "trojan": 8,
+      "vless": 75
     },
-    "reachable": 267,
+    "reachable": 260,
     "sources_active": 8,
     "sources_quarantined": 7,
-    "timestamp": "2026-10-27T12:28:08+00:00"
+    "timestamp": "2026-10-27T12:31:59+00:00"
   }
 ]

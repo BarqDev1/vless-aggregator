@@ -168,5 +168,109 @@
     "sources_active": 8,
     "sources_quarantined": 7,
     "timestamp": "2026-10-27T12:49:09+00:00"
+  },
+  {
+    "alive": 77,
+    "delta": -10,
+    "e2e_failed": 114,
+    "e2e_verified": 126,
+    "held_back": 9,
+    "latency_p50": 1183.4,
+    "protocols": {
+      "hysteria2": 5,
+      "trojan": 8,
+      "vless": 64
+    },
+    "reachable": 252,
+    "sources_active": 8,
+    "sources_quarantined": 7,
+    "timestamp": "2026-10-27T13:03:47+00:00"
+  },
+  {
+    "alive": 93,
+    "delta": 16,
+    "e2e_failed": 88,
+    "e2e_verified": 34,
+    "held_back": 18,
+    "latency_p50": 1202.7,
+    "protocols": {
+      "hysteria2": 6,
+      "trojan": 9,
+      "vless": 78
+    },
+    "reachable": 254,
+    "sources_active": 8,
+    "sources_quarantined": 7,
+    "timestamp": "2026-10-27T13:06:06+00:00"
+  },
+  {
+    "alive": 72,
+    "delta": -21,
+    "e2e_failed": 109,
+    "e2e_verified": 142,
+    "held_back": 28,
+    "latency_p50": 1116.1,
+    "protocols": {
+      "hysteria2": 4,
+      "trojan": 9,
+      "vless": 59
+    },
+    "reachable": 256,
+    "sources_active": 8,
+    "sources_quarantined": 7,
+    "timestamp": "2026-10-27T13:11:38+00:00"
+  },
+  {
+    "alive": 92,
+    "delta": 20,
+    "e2e_failed": 28,
+    "e2e_verified": 6,
+    "held_back": 4,
+    "latency_p50": 1163.5,
+    "protocols": {
+      "hysteria2": 6,
+      "trojan": 9,
+      "vless": 77
+    },
+    "reachable": 240,
+    "sources_active": 8,
+    "sources_quarantined": 7,
+    "timestamp": "2026-10-27T13:13:49+00:00"
+  },
+  {
+    "alive": 97,
+    "delta": 5,
+    "e2e_failed": 47,
+    "e2e_verified": 2,
+    "held_back": 2,
+    "latency_p50": 1180.1,
+    "protocols": {
+      "hysteria2": 6,
+      "trojan": 9,
+      "vless": 82
+    },
+    "reachable": 261,
+    "sources_active": 8,
+    "sources_quarantined": 7,
+    "timestamp": "2026-10-27T13:15:19+00:00"
+  },
+  {
+    "alive": 99,
+    "delta": 2,
+    "e2e_cached": 147,
+    "e2e_cached_failed": 65,
+    "e2e_failed": 43,
+    "e2e_verified": 4,
+    "held_back": 3,
+    "latency_p50": 1210.2,
+    "protocols": {
+      "hysteria2": 6,
+      "trojan": 9,
+      "vless": 84
+    },
+    "reachable": 261,
+    "sources_active": 8,
+    "sources_quarantined": 7,
+    "timestamp": "2026-10-27T13:17:45+00:00"
   }
 ]

@@ -18,6 +18,9 @@
   - быстрый префильтр: TCP connect для VLESS/Trojan, QUIC v1 handshake (ALPN `h3`) для Hysteria2;
   - **E2E-проверка** (в CI включена): реальный клиент `Xray` поднимает туннель и запрашивает
     `http://www.gstatic.com/generate_204` через HTTP-прокси. Нода попадает в подписку только при `204/200`.
+- ⏱️ **Быстрые прогоны:** результат E2E кешируется на `E2E_CACHE_MINUTES` (60 минут), поэтому
+  каждые 10 минут проверяются только новые/просроченные ноды. Источники кешируются по ETag/Last-Modified.
+  Полное обновление E2E — раз в час, обычный прогон — десятки секунд.
 - 🧹 **Точная дедупликация:** ключ включает протокол, хост, порт, учётные данные, SNI и все параметры транспорта
   (`type`, `security`, `path`, `flow` …). Разные UUID на одном сервере **не** схлопываются.
   На один эндпоинт (`протокол + host:port`) тестируется до `MAX_PER_ENDPOINT` вариантов,
@@ -40,7 +43,7 @@
 - 🧾 **Метаданные подписки** в `state/meta.json` (`profile-title`, интервал обновления, support URL, ссылки).
 - 🚨 **Алерты:** при падении workflow создаётся/обновляется GitHub Issue.
 - 🤖 **GitHub Actions:** линт, `mypy`, тесты с coverage ≥50%, `pip-audit`, затем обновление
-  **каждые 30 минут** (`cron: */30 * * * *`) и при изменении `config/sources.txt`.
+  **каждые 10 минут** (`cron: */10 * * * *`) и при изменении `config/sources.txt`.
   Зависимости зафиксированы в `requirements.lock`, обновления — через Dependabot.
   Сгенерированные файлы проверяются тестами до коммита; действия закреплены по SHA,
   параллельные запуски запрещены, история и метаданные коммитятся вместе с прогоном.
@@ -62,7 +65,8 @@
 │   ├── meta.json
 │   ├── history.json
 │   ├── node_history.json
-│   └── source_health.json
+│   ├── source_health.json
+│   └── source_cache.json
 ├── tests/
 ├── vless_universal.txt        # публичные подписки — намеренно в корне,
 ├── hysteria2.txt              # чтобы старые raw-URL не ломались
@@ -84,6 +88,7 @@
 | **`state/meta.json`** | Метаданные подписки | Для nginx/Remnawave/клиентов |
 | **`state/node_history.json`** | История стабильности нод (2 из 3) | Для диагностики |
 | **`state/source_health.json`** | Состояние источников и карантин | Для диагностики и ручного снятия карантина |
+| **`state/source_cache.json`** | ETag-кеш источников | Для быстрых повторных запусков |
 
 > ⚠️ Не добавляйте одновременно `all_universal.txt` и `vless_universal.txt` в один клиент:
 > `all` уже содержит все VLESS, поэтому в списке появятся визуальные дубликаты.
@@ -133,7 +138,7 @@ add_header support-url "https://github.com/BarqDev1/vless-aggregator/issues";
 ## 📈 История и наблюдаемость
 
 - `state/history.json` — по одной записи на прогон: `alive`, `protocols`, `delta`, `latency_p50`,
-  `e2e_verified`, `held_back`, `sources_active`.
+  `e2e_verified`, `e2e_cached`, `e2e_cached_failed`, `held_back`, `sources_active`.
 - `state/node_history.json` — хешированные ID нод и последние 3 результата (2 из 3).
 - Бейджи в шапке README обновляются из `state/stats.json` через shields.io.
 
@@ -209,6 +214,10 @@ https://domain.com/sub/token
 | `MAX_PER_DOMAIN` | `10` | Максимум нод на registrable domain |
 | `MAX_REMARK_LEN` | `120` | Максимальная длина remark |
 | `SOURCE_HEALTH_FILE` | `state/source_health.json` | Состояние источников и карантина |
+| `SOURCE_CACHE_FILE` | `state/source_cache.json` | ETag/Last-Modified кеш источников |
+| `FETCH_CONCURRENCY` | `16` | Параллельных загрузок источников |
+| `E2E_CACHE_MINUTES` | `60` | Сколько минут доверять успешному E2E-результату |
+| `E2E_FAILURE_CACHE_MINUTES` | `15` | Сколько минут не перепроверять упавший E2E |
 | `SOURCE_FAILURE_THRESHOLD` | `3` | Прогонов с нулевой отдачей до карантина |
 | `SOURCE_QUARANTINE_HOURS` | `24` | Длительность карантина, часы |
 | `NODE_HISTORY_FILE` | `state/node_history.json` | История стабильности нод |
@@ -216,15 +225,15 @@ https://domain.com/sub/token
 | `NODE_RECENT_WINDOW` | `3` | Размер окна проверок |
 | `NODE_HISTORY_TTL_DAYS` | `30` | Сколько дней хранить историю нод |
 | `HISTORY_FILE` | `state/history.json` | История прогонов |
-| `HISTORY_MAX_RUNS` | `1440` | Максимум записей истории (30 дней при 30-мин интервале) |
+| `HISTORY_MAX_RUNS` | `4320` | Максимум записей истории (30 дней при 10-мин интервале) |
 | `META_FILE` | `state/meta.json` | Метаданные подписки |
 | `PROFILE_TITLE` | `BarqDev Multi-Protocol VPN` | Название профиля |
-| `PROFILE_UPDATE_INTERVAL` | `0.5` | Интервал обновления, часы (30 минут) |
+| `PROFILE_UPDATE_INTERVAL` | `0.17` | Интервал обновления, часы (10 минут) |
 | `SUPPORT_URL` | GitHub Issues | Support URL |
 | `HOME_URL` | GitHub репозиторий | Home URL |
 | `E2E_VERIFY` | `0` | Включить E2E-проверку (`1` в CI) |
-| `E2E_CONCURRENCY` | `6` | Параллельных E2E-клиентов |
-| `E2E_TIMEOUT` | `7.0` | Таймаут HTTP-запроса через туннель, сек |
+| `E2E_CONCURRENCY` | `10` | Параллельных E2E-клиентов |
+| `E2E_TIMEOUT` | `5.0` | Таймаут HTTP-запроса через туннель, сек |
 | `XRAY_BIN` | `xray` | Путь к бинарнику Xray |
 | `BASELINE_RESET` | `0` | Пропустить drop-guard при намеренном изменении набора источников |
 

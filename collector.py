@@ -770,10 +770,10 @@ def _domain_key(node: dict) -> Optional[str]:
 
 
 def cap_published_endpoints(nodes: List[dict]) -> Tuple[List[dict], int]:
-    """Publishes one (usually the fastest) variant per endpoint."""
+    """Publishes one (usually the fastest) variant per host:port."""
     return _cap_by_key(
         nodes,
-        lambda n: (n["scheme"], n["host"].lower(), n["port"], n["sni"].lower()),
+        lambda n: (n["scheme"], n["host"].lower(), n["port"]),
         PUBLISH_PER_ENDPOINT,
     )
 

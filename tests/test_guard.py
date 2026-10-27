@@ -82,6 +82,17 @@ def test_published_endpoint_cap_removes_credential_copies(monkeypatch):
     assert removed == 2
 
 
+def test_published_endpoint_cap_ignores_sni_variants(monkeypatch):
+    monkeypatch.setattr(c, "PUBLISH_PER_ENDPOINT", 1)
+    nodes = [
+        _node(credential="a", sni=""),
+        _node(credential="b", sni="rs5.example.com"),
+    ]
+    kept, removed = c.cap_published_endpoints(nodes)
+    assert len(kept) == 1
+    assert removed == 1
+
+
 def test_guard_protocol_disappeared():
     with pytest.raises(c.GuardError):
         c.enforce_guard(

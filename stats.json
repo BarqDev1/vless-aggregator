@@ -1,117 +1,117 @@
 {
-  "alive": 93,
+  "alive": 86,
   "alive_by_protocol": {
     "hysteria2": 7,
     "trojan": 9,
-    "vless": 77
+    "vless": 70
   },
   "baseline_reset": false,
-  "candidates_after_cap": 303,
-  "capped_by_domain": 1,
+  "candidates_after_cap": 527,
+  "capped_by_domain": 0,
   "capped_by_endpoint": 339,
-  "capped_by_published_endpoint": 49,
+  "capped_by_published_endpoint": 51,
   "capped_by_subnet": 2,
   "checks": {
     "hysteria2": "xray_hysteria2_e2e",
     "trojan": "xray_e2e",
     "vless": "xray_e2e"
   },
-  "duration_sec": 133.5,
+  "duration_sec": 169.5,
   "e2e": {
-    "duration_sec": 97.9,
+    "duration_sec": 113.9,
     "enabled": true,
-    "failed": 74,
-    "unsupported": 2,
-    "verified": 150
+    "failed": 109,
+    "unsupported": 3,
+    "verified": 140
   },
   "e2e_enabled": true,
   "hysteria2_pinned": 7,
   "latency_by_protocol": {
     "hysteria2": {
-      "max": 3693.1,
-      "min": 197.2,
-      "p50": 701.5,
-      "p90": 1824.1
+      "max": 2838.7,
+      "min": 197.9,
+      "p50": 462.6,
+      "p90": 1624.5
     },
     "trojan": {
-      "max": 3588.7,
-      "min": 121.8,
-      "p50": 319.5,
-      "p90": 2372.8
+      "max": 5360.8,
+      "min": 620.7,
+      "p50": 911.3,
+      "p90": 2491.9
     },
     "vless": {
-      "max": 6956.5,
-      "min": 78.4,
-      "p50": 702.4,
-      "p90": 2329.7
+      "max": 6424.3,
+      "min": 104.3,
+      "p50": 1236.3,
+      "p90": 2538.1
     }
   },
   "latency_ms": {
-    "max": 6956.5,
-    "min": 78.4,
-    "p50": 691.6,
-    "p90": 2841.2
+    "max": 6424.3,
+    "min": 104.3,
+    "p50": 1199.0,
+    "p90": 2538.1
   },
-  "previous_total": 86,
-  "raw_links": 1898,
-  "reachable": 244,
+  "previous_total": 93,
+  "raw_links": 2111,
+  "reachable": 268,
   "rejected_invalid": 45,
   "source_stats": {
     "git+https://gitlab.com/igareck/vpn-configs-for-russia.git": {
       "active": true,
-      "alive": 25,
+      "alive": 22,
       "quarantined": false,
       "raw": 1345,
       "unique": 327,
-      "yield": 0.019
+      "yield": 0.016
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_FULL.txt": {
       "active": true,
-      "alive": 32,
+      "alive": 19,
       "quarantined": false,
-      "raw": 44,
-      "unique": 37,
-      "yield": 0.727
+      "raw": 30,
+      "unique": 26,
+      "yield": 0.633
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_LITE.txt": {
       "active": true,
-      "alive": 59,
+      "alive": 53,
       "quarantined": false,
       "raw": 107,
       "unique": 75,
-      "yield": 0.551
+      "yield": 0.495
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/26.1.txt": {
       "active": true,
-      "alive": 1,
+      "alive": 2,
       "quarantined": false,
-      "raw": 53,
-      "unique": 53,
-      "yield": 0.019
+      "raw": 280,
+      "unique": 277,
+      "yield": 0.007
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/30.txt": {
       "active": true,
-      "alive": 2,
+      "alive": 1,
       "quarantined": false,
       "raw": 59,
       "unique": 59,
-      "yield": 0.034
+      "yield": 0.017
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/31.txt": {
       "active": true,
-      "alive": 2,
+      "alive": 1,
       "quarantined": false,
       "raw": 59,
       "unique": 59,
-      "yield": 0.034
+      "yield": 0.017
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/32.1.txt": {
       "active": true,
-      "alive": 2,
+      "alive": 3,
       "quarantined": false,
       "raw": 99,
       "unique": 99,
-      "yield": 0.02
+      "yield": 0.03
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/33.1.txt": {
       "active": false,
@@ -171,11 +171,11 @@
     },
     "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt": {
       "active": true,
-      "alive": 7,
+      "alive": 8,
       "quarantined": false,
       "raw": 132,
       "unique": 132,
-      "yield": 0.053
+      "yield": 0.061
     }
   },
   "sources_active": 8,
@@ -184,34 +184,34 @@
   "sources_with_data": 8,
   "stability": {
     "bootstrap": 0,
-    "eligible": 145,
-    "held_back": 7,
+    "eligible": 139,
+    "held_back": 4,
     "pruned": 0,
-    "tracked": 215,
-    "verified": 152
+    "tracked": 216,
+    "verified": 143
   },
   "tls_inspection": {
-    "failed": 18,
-    "pinned": 16,
-    "valid": 77
+    "failed": 16,
+    "pinned": 14,
+    "valid": 82
   },
   "top_countries": {
-    "🇧🇬": 4,
+    "🇧🇬": 3,
     "🇨🇦": 8,
-    "🇩🇪": 4,
-    "🇫🇮": 8,
-    "🇫🇷": 7,
+    "🇩🇪": 3,
+    "🇫🇮": 9,
+    "🇫🇷": 6,
     "🇬🇧": 4,
-    "🇲🇩": 4,
-    "🇳🇱": 8,
+    "🇲🇩": 3,
+    "🇳🇱": 6,
     "🇵🇱": 3,
-    "🇷🇸": 5,
+    "🇷🇸": 4,
     "🇷🇺": 7,
-    "🇸🇪": 2,
+    "🇸🇪": 3,
     "🇸🇬": 3,
     "🇹🇷": 3,
-    "🇺🇸": 8
+    "🇺🇸": 5
   },
-  "unique_valid": 642,
-  "updated_at": "2026-10-27T12:22:39+00:00"
+  "unique_valid": 866,
+  "updated_at": "2026-10-27T12:26:46+00:00"
 }

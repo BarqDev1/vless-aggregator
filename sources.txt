@@ -14,26 +14,19 @@ https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt
 https://raw.githubusercontent.com/artembsk/vpn-configs-for-russia/main/WHITE-CIDR-RU-all.txt
 https://raw.githubusercontent.com/artembsk/vpn-configs-for-russia/main/Vless-Reality-White-Lists-Rus-Mobile.txt
 
-
-# 4
+# 4. FLAT447 — V2Ray / VLESS белые списки (полный и облегчённый):
 https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_FULL.txt
-
 https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_LITE.txt
 
+# 5. Hidashimora — Подборки анти-РКН конфигураций (CIDR Mobile, VK/Ya/CDN, SNI обход):
 https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/26.1.txt
-
 https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/30.txt
-
 https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/31.txt
-
 https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/32.1.txt
-
 https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/33.1.txt
-
 https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/34.txt
 
+# 6. wlunlocker — Антиглушилки CIDR белые списки (Россия и Европа):
 https://raw.githubusercontent.com/wlunlocker/vpn-configs/main/whitelist_cidr1_ru.txt
-
 https://raw.githubusercontent.com/wlunlocker/vpn-configs/main/whitelist_cidr2_ru.txt
-
 https://raw.githubusercontent.com/wlunlocker/vpn-configs/main/whitelist_cidr3_eu.txt

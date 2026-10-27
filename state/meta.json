@@ -7,7 +7,7 @@
   },
   "home_url": "https://github.com/BarqDev1/vless-aggregator",
   "profile_title": "BarqDev Multi-Protocol VPN",
-  "profile_update_interval": 0.38,
+  "profile_update_interval": 0.5,
   "subscription_userinfo": null,
   "subscriptions": {
     "all": "https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/all_universal.txt",

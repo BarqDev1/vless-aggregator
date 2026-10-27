@@ -82,7 +82,7 @@ PROFILE_TITLE = os.getenv("PROFILE_TITLE", "BarqDev Multi-Protocol VPN")
 SUPPORT_URL = os.getenv(
     "SUPPORT_URL", "https://github.com/BarqDev1/vless-aggregator/issues"
 )
-PROFILE_UPDATE_INTERVAL = float(os.getenv("PROFILE_UPDATE_INTERVAL", "0.38"))
+PROFILE_UPDATE_INTERVAL = float(os.getenv("PROFILE_UPDATE_INTERVAL", "0.5"))
 HOME_URL = os.getenv("HOME_URL", "https://github.com/BarqDev1/vless-aggregator")
 
 TIMEOUT = float(os.getenv("PING_TIMEOUT", "3.0"))
@@ -108,7 +108,7 @@ NODE_MIN_RECENT_SUCCESS = max(1, int(os.getenv("NODE_MIN_RECENT_SUCCESS", "2")))
 NODE_RECENT_WINDOW = max(1, int(os.getenv("NODE_RECENT_WINDOW", "3")))
 NODE_HISTORY_TTL_DAYS = max(1, int(os.getenv("NODE_HISTORY_TTL_DAYS", "30")))
 MAX_NODE_HISTORY = max(100, int(os.getenv("MAX_NODE_HISTORY", "10000")))
-HISTORY_MAX_RUNS = max(24, int(os.getenv("HISTORY_MAX_RUNS", "1920")))
+HISTORY_MAX_RUNS = max(24, int(os.getenv("HISTORY_MAX_RUNS", "1440")))
 
 E2E_CACHE_MINUTES = max(0.0, float(os.getenv("E2E_CACHE_MINUTES", "60")))
 E2E_FAILURE_CACHE_MINUTES = max(0.0, float(os.getenv("E2E_FAILURE_CACHE_MINUTES", "15")))

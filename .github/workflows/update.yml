@@ -2,8 +2,7 @@ name: Update VPN subscriptions
 
 on:
   schedule:
-    # 0/23 => :00, :23, :46 (cron resets every hour; exact 23-min cadence is not possible)
-    - cron: '0/23 * * * *'
+    - cron: '*/30 * * * *'
   workflow_dispatch:
   push:
     paths:

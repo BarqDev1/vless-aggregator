@@ -11,7 +11,7 @@
 - ✅ **Валидация до проверки:** UUID (VLESS), `pbk` для Reality, непустой пароль Trojan, корректные host/port.
 - ⚡ **Двухступенчатая проверка:**
   - быстрый префильтр: TCP connect для VLESS/Trojan, QUIC v1 handshake (ALPN `h3`) для Hysteria2;
-  - **E2E-проверка** (в CI включена): реальный клиент `Xray`/`sing-box` поднимает туннель и запрашивает
+  - **E2E-проверка** (в CI включена): реальный клиент `Xray` поднимает туннель и запрашивает
     `http://www.gstatic.com/generate_204` через HTTP-прокси. Нода попадает в подписку только при `204/200`.
 - 🧹 **Точная дедупликация:** ключ включает протокол, хост, порт, учётные данные, SNI и все параметры транспорта
   (`type`, `security`, `path`, `flow` …). Разные UUID на одном сервере **не** схлопываются.
@@ -62,14 +62,14 @@ https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/stats.json
 | Префильтр VLESS/Trojan | TCP connect | Порт принимает соединения |
 | Префильтр Hysteria2 | QUIC v1 handshake, ALPN `h3` | На UDP-порту отвечает QUIC/Hysteria2-сервер |
 | **E2E (CI)** | Xray туннель + HTTP-запрос | UUID/пароль/Reality-ключи рабочие, есть выход в интернет |
-| **E2E (CI)** | sing-box туннель + HTTP-запрос | Hysteria2-аутентификация рабочая, есть выход в интернет |
+| **E2E (CI)** | Xray Hysteria2-туннель + HTTP-запрос | Hysteria2-аутентификация рабочая, есть выход в интернет |
 
 В CI (`E2E_VERIFY=1`) публикуются только ноды, прошедшие E2E: `http://www.gstatic.com/generate_204`
 возвращает `204/200` через туннель. Если E2E выключен, остаётся только protocol-level проверка.
 Один неподдерживаемый транспорт может остаться с protocol-level статусом — это видно в `stats.json`
 (`e2e.unsupported`).
 
-E2E-клиенты: **Xray-core v26.10.21** и **sing-box v1.14.4**.
+E2E-клиент: **Xray-core v26.10.21**.
 Ссылки нормализуются под новое ядро Xray: `insecure`/`allowInsecure` удаляются, для самоподписанных TLS-нод
 добавляется `pcs=<sha256>` (pinned certificate), а plaintext-VLESS без TLS/Reality не публикуется.
 
@@ -78,7 +78,7 @@ E2E-клиенты: **Xray-core v26.10.21** и **sing-box v1.14.4**.
 - TLS-ноды с валидным CA-сертификатом проверяются штатно.
 - Самоподписанные TLS-ноды получают `pcs=<sha256>` — официальный аналог `allowInsecure` в share-link.
 - VLESS без TLS/Reality отбрасывается: Xray 26 не запускает такой публичный outbound.
-- Hysteria2 сохраняет `insecure=1` — это параметр sing-box, а не Xray TLS.
+- Hysteria2-ноды пинятся параметром `pinSHA256=<sha256>`; `insecure=1` больше не публикуется.
 
 ---
 
@@ -130,7 +130,6 @@ https://domain.com/sub/token
 | `E2E_CONCURRENCY` | `6` | Параллельных E2E-клиентов |
 | `E2E_TIMEOUT` | `7.0` | Таймаут HTTP-запроса через туннель, сек |
 | `XRAY_BIN` | `xray` | Путь к бинарнику Xray |
-| `SING_BOX_BIN` | `sing-box` | Путь к бинарнику sing-box |
 | `BASELINE_RESET` | `0` | Пропустить drop-guard при намеренном изменении набора источников |
 
 ---
@@ -147,8 +146,8 @@ pip install -r requirements.txt -r requirements-dev.txt
 # Быстрый прогон без E2E (по умолчанию)
 python collector.py
 
-# Полный прогон с E2E (нужны бинарники Xray 25.3.6 и sing-box 1.14.4)
-E2E_VERIFY=1 XRAY_BIN=/path/to/xray SING_BOX_BIN=/path/to/sing-box python collector.py
+# Полный прогон с E2E (нужен бинарник Xray 26.10.21)
+E2E_VERIFY=1 XRAY_BIN=/path/to/xray python collector.py
 
 pytest
 ruff check .

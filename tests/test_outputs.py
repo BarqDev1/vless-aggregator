@@ -70,17 +70,22 @@ def test_modern_xray_compatible_tls_links():
     # Xray-core >= 26 rejects allowInsecure/insecure and plaintext VLESS.
     for line in _lines(ALL):
         node = c.parse_vpn_link(line)
-        if node["scheme"] not in ("vless", "trojan"):
-            continue
-        params = {key.lower() for key in node["query"]}
+        params = {key.lower(): values for key, values in node["query"].items()}
         assert "insecure" not in params
         assert "allowinsecure" not in params
         if node["scheme"] == "vless":
             assert node["security"] in ("tls", "reality")
+        if node["scheme"] == "hysteria2":
+            assert "pinsha256" in params
         if "pcs" in params:
             assert all(
                 len(value) == 64 and all(ch in "0123456789abcdef" for ch in value)
-                for value in node["query"]["pcs"]
+                for value in params["pcs"]
+            )
+        if "pinsha256" in params:
+            assert all(
+                len(value) == 64 and all(ch in "0123456789abcdef" for ch in value)
+                for value in params["pinsha256"]
             )
 
 

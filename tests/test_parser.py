@@ -128,11 +128,19 @@ def test_format_link_removes_insecure_and_pins_certificate():
     assert params["pcs"] == "deadbeef"
 
 
-def test_format_link_keeps_hysteria2_insecure():
+def test_format_link_replaces_hysteria2_insecure_with_pin():
     node = c.parse_vpn_link("hysteria2://pass@example.com:443?sni=example.com&insecure=1#node")
     assert node is not None
+    node["tls_cert_sha256"] = "deadbeef"
     formatted = c.format_link(node)
-    assert "insecure=1" in formatted
+    query = formatted.split("#", 1)[0].partition("?")[2]
+    params = dict(urllib.parse.parse_qsl(query))
+    assert "insecure" not in params
+    assert params["pinSHA256"] == "deadbeef"
+
+    reparsed = c.parse_vpn_link(formatted)
+    assert reparsed is not None
+    assert reparsed["tls_cert_sha256"] == "deadbeef"
 
 
 def test_extract_raw_links():

@@ -38,6 +38,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, Iterable, List, Optional, Tuple
 
 import aiohttp
+from cryptography.hazmat.primitives import serialization
 
 import e2e
 
@@ -86,7 +87,6 @@ E2E_VERIFY = os.getenv("E2E_VERIFY", "0").strip().lower() in {"1", "true", "yes"
 E2E_CONCURRENCY = max(1, int(os.getenv("E2E_CONCURRENCY", "6")))
 E2E_TIMEOUT = float(os.getenv("E2E_TIMEOUT", "7.0"))
 XRAY_BIN = os.getenv("XRAY_BIN", "xray")
-SING_BOX_BIN = os.getenv("SING_BOX_BIN", "sing-box")
 BASELINE_RESET = os.getenv("BASELINE_RESET", "0").strip().lower() in {"1", "true", "yes", "on"}
 
 DEFAULT_HEADERS = {
@@ -267,7 +267,10 @@ def parse_vpn_link(link: str) -> Optional[dict]:
     qs = urllib.parse.parse_qs(raw_query, keep_blank_values=True)
     sni = (qs.get("sni") or qs.get("host") or [""])[0].strip()
     security = (qs.get("security") or [""])[0].lower()
-    pinned = (qs.get("pcs") or [""])[0].strip() if security == "tls" else ""
+    if canonical == "hysteria2":
+        pinned = (qs.get("pinSHA256") or qs.get("pinsha256") or [""])[0].strip()
+    else:
+        pinned = (qs.get("pcs") or [""])[0].strip() if security == "tls" else ""
 
     if canonical == "vless":
         if not UUID_REGEX.match(userinfo):
@@ -381,7 +384,16 @@ async def _check_quic(node: dict, timeout: float) -> bool:
 
     try:
         async with asyncio.timeout(timeout):
-            async with quic_connect(host, port, configuration=config):
+            async with quic_connect(host, port, configuration=config) as protocol:
+                if node.get("scheme") == "hysteria2":
+                    try:
+                        certificate = protocol._quic.tls._peer_certificate
+                        if certificate is not None:
+                            der = certificate.public_bytes(serialization.Encoding.DER)
+                            node["tls_mode"] = "pinned"
+                            node["tls_cert_sha256"] = hashlib.sha256(der).hexdigest()
+                    except Exception:
+                        pass
                 return True
     except Exception:
         return False
@@ -627,7 +639,13 @@ def format_link(node: dict) -> str:
         if node.get("security") == "tls" and node.get("tls_cert_sha256"):
             pairs.append(("pcs", node["tls_cert_sha256"]))
     else:
-        pairs = [(key, value) for key, value in pairs if key.lower() != "allowinsecure"]
+        pairs = [
+            (key, value)
+            for key, value in pairs
+            if key.lower() not in ("insecure", "allowinsecure", "pinsha256", "pcs")
+        ]
+        if node.get("tls_cert_sha256"):
+            pairs.append(("pinSHA256", node["tls_cert_sha256"]))
 
     rebuilt = f"{scheme}://{location}"
     if pairs:
@@ -902,10 +920,10 @@ async def main() -> int:
         logger.error("No usable sources found.")
         return 2
 
-    xray_bin, sing_box_bin = XRAY_BIN, SING_BOX_BIN
+    xray_bin = XRAY_BIN
     if E2E_VERIFY:
         try:
-            xray_bin, sing_box_bin = e2e.ensure_binaries(XRAY_BIN, SING_BOX_BIN)
+            xray_bin = e2e.ensure_binaries(XRAY_BIN)
         except e2e.E2ERuntimeError as exc:
             logger.error(f"E2E verification is enabled but unusable: {exc}")
             return 2
@@ -1031,6 +1049,15 @@ async def main() -> int:
             f"pinned={tls_status['pinned']}, failed={tls_status['failed']}"
         )
 
+    hy2_without_pin = [
+        node
+        for node in alive_nodes
+        if node["scheme"] == "hysteria2" and not node.get("tls_cert_sha256")
+    ]
+    if hy2_without_pin:
+        logger.info(f"Dropping {len(hy2_without_pin)} Hysteria2 nodes without a certificate pin")
+        alive_nodes = [node for node in alive_nodes if node not in hy2_without_pin]
+
     e2e_status = {
         "enabled": E2E_VERIFY,
         "verified": 0,
@@ -1047,7 +1074,6 @@ async def main() -> int:
             e2e_results = await e2e.verify_nodes(
                 alive_nodes,
                 xray_bin=xray_bin,
-                sing_box_bin=sing_box_bin,
                 concurrency=E2E_CONCURRENCY,
                 timeout=E2E_TIMEOUT,
             )
@@ -1178,6 +1204,11 @@ async def main() -> int:
             "rejected_invalid": rejected,
             "reachable": reachable,
             "tls_inspection": tls_status,
+            "hysteria2_pinned": sum(
+                1
+                for node in alive_nodes
+                if node["scheme"] == "hysteria2" and node.get("tls_cert_sha256")
+            ),
             "e2e": e2e_status,
             "alive": len(alive_nodes),
             "alive_by_protocol": dict(sorted(alive_counts.items())),
@@ -1194,7 +1225,7 @@ async def main() -> int:
                 "vless": "xray_e2e" if E2E_VERIFY else "tcp_connect",
                 "trojan": "xray_e2e" if E2E_VERIFY else "tcp_connect",
                 "hysteria2": (
-                    "singbox_e2e"
+                    "xray_hysteria2_e2e"
                     if E2E_VERIFY
                     else ("quic_v1_handshake_h3" if HAS_AIOQUIC else "unverified")
                 ),

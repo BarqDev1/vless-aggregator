@@ -1,8 +1,8 @@
 """End-to-end verification of VPN nodes through real proxy clients.
 
 Protocol-level checks only prove that a port answers. This module starts a
-real client (Xray for VLESS/Trojan, sing-box for Hysteria2), routes an HTTP
-request through it and accepts the node only if the request succeeds.
+real Xray client (VLESS, Trojan and Hysteria2), routes an HTTP request through
+it and accepts the node only if the request succeeds.
 
 Xray is pinned to a modern v26 release: `allowInsecure` is gone, so TLS nodes
 are either CA-valid or pinned with `pinnedPeerCertSha256` (`pcs` in links).
@@ -135,6 +135,43 @@ def _xray_stream(node: dict) -> Optional[dict]:
 
 def build_xray_config(node: dict, listen_port: int) -> Optional[dict]:
     """Builds an Xray config with an HTTP inbound and a single outbound."""
+    inbound = {
+        "listen": "127.0.0.1",
+        "port": listen_port,
+        "protocol": "http",
+        "settings": {"timeout": 0},
+    }
+
+    if node.get("scheme") == "hysteria2":
+        certificate = node.get("tls_cert_sha256")
+        if not certificate:
+            return None
+        outbound: Dict[str, object] = {
+            "protocol": "hysteria",
+            "settings": {
+                "version": 2,
+                "address": node["host"],
+                "port": node["port"],
+            },
+            "streamSettings": {
+                "network": "hysteria",
+                "security": "tls",
+                "tlsSettings": {
+                    "serverName": _sni(node),
+                    "pinnedPeerCertSha256": certificate,
+                },
+                "hysteriaSettings": {
+                    "version": 2,
+                    "auth": node["credential"],
+                },
+            },
+        }
+        return {
+            "log": {"loglevel": "error"},
+            "inbounds": [inbound],
+            "outbounds": [outbound],
+        }
+
     if node.get("scheme") not in ("vless", "trojan"):
         return None
     stream = _xray_stream(node)
@@ -182,43 +219,6 @@ def build_xray_config(node: dict, listen_port: int) -> Optional[dict]:
                 "port": listen_port,
                 "protocol": "http",
                 "settings": {"timeout": 0},
-            }
-        ],
-        "outbounds": [outbound],
-    }
-
-
-def build_singbox_config(node: dict, listen_port: int) -> Optional[dict]:
-    """Builds a sing-box config for a Hysteria2 node."""
-    if node.get("scheme") != "hysteria2":
-        return None
-
-    outbound: Dict[str, object] = {
-        "type": "hysteria2",
-        "tag": "proxy",
-        "server": node["host"],
-        "server_port": node["port"],
-        "password": node["credential"],
-        "tls": {
-            "enabled": True,
-            "server_name": _sni(node),
-            "insecure": True,
-        },
-    }
-    obfs = _q(node, "obfs")
-    obfs_password = _q(node, "obfs-password") or _q(node, "obfs_password")
-    if obfs:
-        if not obfs_password:
-            return None
-        outbound["obfs"] = {"type": obfs, "password": obfs_password}
-
-    return {
-        "log": {"level": "error"},
-        "inbounds": [
-            {
-                "type": "mixed",
-                "listen": "127.0.0.1",
-                "listen_port": listen_port,
             }
         ],
         "outbounds": [outbound],
@@ -282,16 +282,10 @@ def _curl_through_proxy(port: int, timeout: float) -> Tuple[str, Optional[float]
     return "403", None
 
 
-def verify_one(node: dict, xray_bin: str, sing_box_bin: str, timeout: float = 7.0) -> Tuple[str, Optional[float]]:
+def verify_one(node: dict, xray_bin: str, timeout: float = 7.0) -> Tuple[str, Optional[float]]:
     """Runs one node through a real client. Returns (status, latency_ms)."""
     port = _free_port()
-    if node.get("scheme") == "hysteria2":
-        binary = sing_box_bin
-        config = build_singbox_config(node, port)
-    else:
-        binary = xray_bin
-        config = build_xray_config(node, port)
-
+    config = build_xray_config(node, port)
     if config is None:
         return "unsupported", None
 
@@ -301,7 +295,7 @@ def verify_one(node: dict, xray_bin: str, sing_box_bin: str, timeout: float = 7.
             json.dump(config, handle)
 
         process = subprocess.Popen(
-            [binary, "run", "-c", config_path],
+            [xray_bin, "run", "-c", config_path],
             cwd=tmpdir,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
@@ -329,28 +323,24 @@ def _require_binary(path: str, name: str) -> str:
     return resolved
 
 
-def ensure_binaries(xray_bin: str = "xray", sing_box_bin: str = "sing-box") -> Tuple[str, str]:
-    """Validates both e2e binaries and returns their resolved paths."""
-    return _require_binary(xray_bin, "Xray"), _require_binary(sing_box_bin, "sing-box")
+def ensure_binaries(xray_bin: str = "xray") -> str:
+    """Validates the Xray binary and returns its resolved path."""
+    return _require_binary(xray_bin, "Xray")
 
 
 async def verify_nodes(
     nodes: List[dict],
     xray_bin: str = "xray",
-    sing_box_bin: str = "sing-box",
     concurrency: int = 6,
     timeout: float = 7.0,
 ) -> List[Tuple[dict, str, Optional[float]]]:
     """Verifies nodes concurrently and annotates each node with its e2e status."""
     xray_bin = _require_binary(xray_bin, "Xray")
-    sing_box_bin = _require_binary(sing_box_bin, "sing-box")
     semaphore = asyncio.Semaphore(max(1, concurrency))
 
     async def run(node: dict) -> Tuple[dict, str, Optional[float]]:
         async with semaphore:
-            status, latency = await asyncio.to_thread(
-                verify_one, node, xray_bin, sing_box_bin, timeout
-            )
+            status, latency = await asyncio.to_thread(verify_one, node, xray_bin, timeout)
             node["e2e"] = status
             if latency is not None:
                 node["e2e_ms"] = latency

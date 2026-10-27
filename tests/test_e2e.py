@@ -62,18 +62,21 @@ def test_xray_tls_pinned_config():
     assert "allowInsecure" not in tls
 
 
-def test_singbox_hysteria2_config():
+def test_xray_hysteria2_pinned_config():
     node = c.parse_vpn_link(
-        "hysteria2://pass@example.com:443?sni=example.com&obfs=salamander"
-        "&obfs-password=obfs-pass#node"
+        "hysteria2://pass@example.com:443?sni=example.com&insecure=1#node"
     )
     assert node is not None
-    config = e2e.build_singbox_config(node, 1080)
+    node["tls_cert_sha256"] = "abc123"
+    config = e2e.build_xray_config(node, 1080)
     assert config is not None
     outbound = config["outbounds"][0]
-    assert outbound["type"] == "hysteria2"
-    assert outbound["tls"]["server_name"] == "example.com"
-    assert outbound["obfs"] == {"type": "salamander", "password": "obfs-pass"}
+    assert outbound["protocol"] == "hysteria"
+    assert outbound["settings"]["version"] == 2
+    assert outbound["streamSettings"]["network"] == "hysteria"
+    assert outbound["streamSettings"]["hysteriaSettings"]["auth"] == "pass"
+    assert outbound["streamSettings"]["tlsSettings"]["pinnedPeerCertSha256"] == "abc123"
+    assert "insecure" not in outbound["streamSettings"]["tlsSettings"]
 
 
 def test_unsupported_transport_returns_none():
@@ -81,13 +84,11 @@ def test_unsupported_transport_returns_none():
     assert e2e.build_xray_config(node, 1080) is None
 
 
-def test_builders_are_protocol_specific():
+def test_hysteria2_requires_pin():
     hy2 = c.parse_vpn_link("hysteria2://pass@example.com:443?sni=example.com")
-    vless = _vless("type=tcp")
     assert e2e.build_xray_config(hy2, 1080) is None
-    assert e2e.build_singbox_config(vless, 1080) is None
 
 
 def test_ensure_binaries_rejects_missing(tmp_path):
     with pytest.raises(e2e.E2ERuntimeError):
-        e2e.ensure_binaries(str(tmp_path / "missing-xray"), str(tmp_path / "missing-singbox"))
+        e2e.ensure_binaries(str(tmp_path / "missing-xray"))

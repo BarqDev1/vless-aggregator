@@ -67,7 +67,7 @@ PROFILE_TITLE = os.getenv("PROFILE_TITLE", "BarqDev Multi-Protocol VPN")
 SUPPORT_URL = os.getenv(
     "SUPPORT_URL", "https://github.com/BarqDev1/vless-aggregator/issues"
 )
-PROFILE_UPDATE_INTERVAL = int(os.getenv("PROFILE_UPDATE_INTERVAL", "1"))
+PROFILE_UPDATE_INTERVAL = float(os.getenv("PROFILE_UPDATE_INTERVAL", "0.5"))
 HOME_URL = os.getenv("HOME_URL", "https://github.com/BarqDev1/vless-aggregator")
 
 TIMEOUT = float(os.getenv("PING_TIMEOUT", "3.0"))
@@ -91,7 +91,7 @@ NODE_MIN_RECENT_SUCCESS = max(1, int(os.getenv("NODE_MIN_RECENT_SUCCESS", "2")))
 NODE_RECENT_WINDOW = max(1, int(os.getenv("NODE_RECENT_WINDOW", "3")))
 NODE_HISTORY_TTL_DAYS = max(1, int(os.getenv("NODE_HISTORY_TTL_DAYS", "30")))
 MAX_NODE_HISTORY = max(100, int(os.getenv("MAX_NODE_HISTORY", "10000")))
-HISTORY_MAX_RUNS = max(24, int(os.getenv("HISTORY_MAX_RUNS", "720")))
+HISTORY_MAX_RUNS = max(24, int(os.getenv("HISTORY_MAX_RUNS", "1440")))
 
 PROTOCOL_MIN_ALIVE = max(1, int(os.getenv("PROTOCOL_MIN_ALIVE", "3")))
 PROTOCOL_MAX_DROP = float(os.getenv("PROTOCOL_MAX_DROP", "0.7"))

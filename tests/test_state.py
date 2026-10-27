@@ -70,7 +70,7 @@ def test_meta_contains_subscription_metadata():
     now = c.datetime(2026, 1, 1, tzinfo=c.timezone.utc)
     meta = c.build_meta({"vless": 3, "trojan": 1}, 4, now)
     assert meta["profile_title"]
-    assert meta["profile_update_interval"] == 1
+    assert meta["profile_update_interval"] == 0.5
     assert meta["support_url"].startswith("https://")
     assert meta["counts"] == {"total": 4, "trojan": 1, "vless": 3}
     assert set(meta["subscriptions"]) == {"all", "vless", "hysteria2"}

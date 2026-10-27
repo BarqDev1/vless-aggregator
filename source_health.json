@@ -2,48 +2,48 @@
   "sources": {
     "git+https://gitlab.com/igareck/vpn-configs-for-russia.git": {
       "consecutive_failures": 0,
-      "last_alive": 57,
-      "last_checked_at": "2026-10-27T11:04:47+00:00",
+      "last_alive": 63,
+      "last_checked_at": "2026-10-27T11:08:47+00:00",
       "last_raw": 1228,
       "last_unique": 280,
       "quarantined_until": null
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_FULL.txt": {
       "consecutive_failures": 0,
-      "last_alive": 52,
-      "last_checked_at": "2026-10-27T11:04:47+00:00",
-      "last_raw": 92,
-      "last_unique": 63,
+      "last_alive": 5,
+      "last_checked_at": "2026-10-27T11:08:47+00:00",
+      "last_raw": 7,
+      "last_unique": 6,
       "quarantined_until": null
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_LITE.txt": {
       "consecutive_failures": 0,
-      "last_alive": 52,
-      "last_checked_at": "2026-10-27T11:04:47+00:00",
-      "last_raw": 92,
-      "last_unique": 63,
+      "last_alive": 48,
+      "last_checked_at": "2026-10-27T11:08:47+00:00",
+      "last_raw": 76,
+      "last_unique": 55,
       "quarantined_until": null
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/26.1.txt": {
       "consecutive_failures": 0,
       "last_alive": 2,
-      "last_checked_at": "2026-10-27T11:04:47+00:00",
+      "last_checked_at": "2026-10-27T11:08:47+00:00",
       "last_raw": 137,
       "last_unique": 136,
       "quarantined_until": null
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/30.txt": {
       "consecutive_failures": 0,
-      "last_alive": 11,
-      "last_checked_at": "2026-10-27T11:04:47+00:00",
+      "last_alive": 14,
+      "last_checked_at": "2026-10-27T11:08:47+00:00",
       "last_raw": 59,
       "last_unique": 59,
       "quarantined_until": null
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/31.txt": {
       "consecutive_failures": 0,
-      "last_alive": 11,
-      "last_checked_at": "2026-10-27T11:04:47+00:00",
+      "last_alive": 14,
+      "last_checked_at": "2026-10-27T11:08:47+00:00",
       "last_raw": 59,
       "last_unique": 59,
       "quarantined_until": null
@@ -51,7 +51,7 @@
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/32.1.txt": {
       "consecutive_failures": 0,
       "last_alive": 19,
-      "last_checked_at": "2026-10-27T11:04:47+00:00",
+      "last_checked_at": "2026-10-27T11:08:47+00:00",
       "last_raw": 99,
       "last_unique": 99,
       "quarantined_until": null
@@ -115,11 +115,11 @@
     "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt": {
       "consecutive_failures": 0,
       "last_alive": 12,
-      "last_checked_at": "2026-10-27T11:04:47+00:00",
+      "last_checked_at": "2026-10-27T11:08:47+00:00",
       "last_raw": 116,
       "last_unique": 116,
       "quarantined_until": null
     }
   },
-  "updated_at": "2026-10-27T11:04:47+00:00"
+  "updated_at": "2026-10-27T11:08:47+00:00"
 }

@@ -43,7 +43,7 @@
 - 🧾 **Метаданные подписки** в `state/meta.json` (`profile-title`, интервал обновления, support URL, ссылки).
 - 🚨 **Алерты:** при падении workflow создаётся/обновляется GitHub Issue.
 - 🤖 **GitHub Actions:** линт, `mypy`, тесты с coverage ≥50%, `pip-audit`, затем обновление
-  **каждые 10 минут** (`cron: */10 * * * *`) и при изменении `config/sources.txt`.
+  **каждые 23 минуты** (`cron: 0/23 * * * *`) и при изменении `config/sources.txt`.
   Зависимости зафиксированы в `requirements.lock`, обновления — через Dependabot.
   Сгенерированные файлы проверяются тестами до коммита; действия закреплены по SHA,
   параллельные запуски запрещены, история и метаданные коммитятся вместе с прогоном.
@@ -225,10 +225,10 @@ https://domain.com/sub/token
 | `NODE_RECENT_WINDOW` | `3` | Размер окна проверок |
 | `NODE_HISTORY_TTL_DAYS` | `30` | Сколько дней хранить историю нод |
 | `HISTORY_FILE` | `state/history.json` | История прогонов |
-| `HISTORY_MAX_RUNS` | `4320` | Максимум записей истории (30 дней при 10-мин интервале) |
+| `HISTORY_MAX_RUNS` | `1920` | Максимум записей истории (30 дней при 23-мин интервале) |
 | `META_FILE` | `state/meta.json` | Метаданные подписки |
 | `PROFILE_TITLE` | `BarqDev Multi-Protocol VPN` | Название профиля |
-| `PROFILE_UPDATE_INTERVAL` | `0.17` | Интервал обновления, часы (10 минут) |
+| `PROFILE_UPDATE_INTERVAL` | `0.38` | Интервал обновления, часы (23 минуты) |
 | `SUPPORT_URL` | GitHub Issues | Support URL |
 | `HOME_URL` | GitHub репозиторий | Home URL |
 | `E2E_VERIFY` | `0` | Включить E2E-проверку (`1` в CI) |

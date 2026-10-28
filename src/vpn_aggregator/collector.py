@@ -1514,6 +1514,40 @@ async def main() -> int:
             ),
         }
 
+    overall_latency = latency_summary(alive_nodes)
+    new_health = update_source_health(health, source_urls, source_stats, now)
+    write_json_atomic(SOURCE_HEALTH_FILE, new_health)
+    write_json_atomic(
+        SOURCE_CACHE_FILE,
+        {
+            "updated_at": now.isoformat(timespec="seconds"),
+            "sources": cached_sources,
+        },
+    )
+
+    history_entries = load_history_list(HISTORY_FILE)
+    history_entries.append(
+        {
+            "timestamp": now.isoformat(timespec="seconds"),
+            "alive": len(alive_nodes),
+            "protocols": dict(sorted(alive_counts.items())),
+            "delta": len(alive_nodes) - previous_total,
+            "reachable": reachable,
+            "e2e_verified": e2e_status["verified"],
+            "e2e_cached": e2e_status["cached"],
+            "e2e_cached_failed": e2e_status["cached_failed"],
+            "e2e_failed": e2e_status["failed"],
+            "latency_p50": overall_latency.get("p50"),
+            "sources_active": len(active_urls),
+            "sources_quarantined": len(skipped_urls),
+            "held_back": stability_stats["held_back"],
+        }
+    )
+    history_entries = history_entries[-HISTORY_MAX_RUNS:]
+    write_json_atomic(HISTORY_FILE, history_entries)
+    write_json_atomic(NODE_HISTORY_FILE, node_history)
+    write_json_atomic(META_FILE, build_meta(alive_counts, len(alive_nodes), now))
+
     baseline_reset = BASELINE_RESET or (
         E2E_VERIFY and not previous_stats.get("e2e_enabled", False)
     )
@@ -1561,7 +1595,6 @@ async def main() -> int:
     logger.info(f"Exported {len(all_lines)} all-protocol nodes -> {ALL_OUTPUT}")
 
     elapsed = round(time.monotonic() - started, 1)
-    overall_latency = latency_summary(alive_nodes)
     write_json_atomic(
         STATS_OUTPUT,
         {
@@ -1611,38 +1644,6 @@ async def main() -> int:
             },
         },
     )
-    new_health = update_source_health(health, source_urls, source_stats, now)
-    write_json_atomic(SOURCE_HEALTH_FILE, new_health)
-    write_json_atomic(
-        SOURCE_CACHE_FILE,
-        {
-            "updated_at": now.isoformat(timespec="seconds"),
-            "sources": cached_sources,
-        },
-    )
-
-    history_entries = load_history_list(HISTORY_FILE)
-    history_entries.append(
-        {
-            "timestamp": now.isoformat(timespec="seconds"),
-            "alive": len(alive_nodes),
-            "protocols": dict(sorted(alive_counts.items())),
-            "delta": len(alive_nodes) - previous_total,
-            "reachable": reachable,
-            "e2e_verified": e2e_status["verified"],
-            "e2e_cached": e2e_status["cached"],
-            "e2e_cached_failed": e2e_status["cached_failed"],
-            "e2e_failed": e2e_status["failed"],
-            "latency_p50": overall_latency.get("p50"),
-            "sources_active": len(active_urls),
-            "sources_quarantined": len(skipped_urls),
-            "held_back": stability_stats["held_back"],
-        }
-    )
-    history_entries = history_entries[-HISTORY_MAX_RUNS:]
-    write_json_atomic(HISTORY_FILE, history_entries)
-    write_json_atomic(NODE_HISTORY_FILE, node_history)
-    write_json_atomic(META_FILE, build_meta(alive_counts, len(alive_nodes), now))
 
     logger.info(f"Wrote run statistics -> {STATS_OUTPUT} ({elapsed}s)")
     logger.info(f"Wrote source health -> {SOURCE_HEALTH_FILE}")

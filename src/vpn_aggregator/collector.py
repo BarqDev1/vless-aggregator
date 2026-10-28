@@ -116,8 +116,8 @@ E2E_FAILURE_CACHE_MINUTES = max(0.0, float(os.getenv("E2E_FAILURE_CACHE_MINUTES"
 PROTOCOL_MIN_ALIVE = max(1, int(os.getenv("PROTOCOL_MIN_ALIVE", "3")))
 PROTOCOL_MAX_DROP = float(os.getenv("PROTOCOL_MAX_DROP", "0.7"))
 
-SOURCE_FAILURE_THRESHOLD = max(1, int(os.getenv("SOURCE_FAILURE_THRESHOLD", "3")))
-SOURCE_QUARANTINE_HOURS = float(os.getenv("SOURCE_QUARANTINE_HOURS", "24"))
+SOURCE_FAILURE_THRESHOLD = max(1, int(os.getenv("SOURCE_FAILURE_THRESHOLD", "5")))
+SOURCE_QUARANTINE_HOURS = float(os.getenv("SOURCE_QUARANTINE_HOURS", "2"))
 
 E2E_VERIFY = os.getenv("E2E_VERIFY", "0").strip().lower() in {"1", "true", "yes", "on"}
 E2E_CONCURRENCY = max(1, int(os.getenv("E2E_CONCURRENCY", "10")))

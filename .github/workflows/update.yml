@@ -57,6 +57,8 @@ jobs:
       E2E_VERIFY: '1'
       E2E_CONCURRENCY: '10'
       E2E_TIMEOUT: '5'
+      SOURCE_FAILURE_THRESHOLD: '5'
+      SOURCE_QUARANTINE_HOURS: '2'
       XRAY_BIN: ${{ github.workspace }}/bin/xray
     steps:
       - name: Checkout repository

@@ -2,7 +2,7 @@
   "sources": {
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_FULL.txt": {
       "etag": "W/\"3bff87ec2c489c96031e334ecaa7166b09a866d88a41376db0e194fb6f1ab438\"",
-      "fetched_at": "2026-10-28T11:42:31+00:00",
+      "fetched_at": "2026-10-28T11:46:16+00:00",
       "last_modified": null,
       "links": [
         "vless://5e679ccd-1586-4d5f-b87b-48251046cad8@hydra.yokkastars.com:2443?encryption=none&type=grpc&security=reality&sni=deepl.com&fp=chrome&pbk=h85e28MxBgNyT9d9cNeOLVtWfHq6cT_1_oxZOTajtTg&sid=92c32de179e5d908&spx=/&serviceName=rex-eb0bf76b710ce763#🇨🇾",
@@ -25,7 +25,7 @@
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_LITE.txt": {
       "etag": "W/\"03f0541e1b7ee2ded4c25c1555c6aae2550191cc7e4321d7e6049c716d654648\"",
-      "fetched_at": "2026-10-28T11:42:31+00:00",
+      "fetched_at": "2026-10-28T11:46:16+00:00",
       "last_modified": null,
       "links": [
         "vless://5e679ccd-1586-4d5f-b87b-48251046cad8@hydra.yokkastars.com:2443?encryption=none&type=grpc&security=reality&sni=deepl.com&fp=chrome&pbk=h85e28MxBgNyT9d9cNeOLVtWfHq6cT_1_oxZOTajtTg&sid=92c32de179e5d908&spx=/&serviceName=rex-eb0bf76b710ce763#🇨🇾",
@@ -130,7 +130,7 @@
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/26.1.txt": {
       "etag": "W/\"d54575467ff51e5e826e14aa0667179304bc2ea5e7612c099403d8822fe4f693\"",
-      "fetched_at": "2026-10-28T11:42:31+00:00",
+      "fetched_at": "2026-10-28T11:46:16+00:00",
       "last_modified": null,
       "links": [
         "vless://47d9b534-8a0a-4bd2-90f1-1d6ade14427e@150.241.101.80:8443?security=reality&encryption=none&pbk=SbVKOEMjK0sIlbwg4akyBg5mL5KZwwB-ed4eEE7YnRc&headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=yandex.net&sid=6ba85179e30d4fc2#🇩🇪[openproxylist.com]",
@@ -428,7 +428,7 @@
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/30.txt": {
       "etag": "W/\"4070f394a1fd17fa2a67bda5053fdd1cfbb6950b1712249b1ce7a30bf49ba5ae\"",
-      "fetched_at": "2026-10-28T11:42:31+00:00",
+      "fetched_at": "2026-10-28T11:46:16+00:00",
       "last_modified": null,
       "links": [
         "vless://f439e4fe-139b-4882-ad8b-a16176d09c88@81.222.148.104:443?security=reality&pbk=EltWI8AOqkN8lMjRycweRRoFRah5hu6xiKtgBmQOdE8&type=raw&sni=eu53.cdn77.icu&sid=1ed136481e0ede74&fp=chrome#.%F0%96%A5%94%20%DD%81%20%CB%96%D6%B4%F0%9F%9B%B8%E0%BC%84%CB%96%C2%B0.%20%7C%20%5B%2ACIDR%5D",
@@ -466,7 +466,7 @@
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/31.txt": {
       "etag": "W/\"0bf88d00361a5e7a4381f1eca546cf275d20c9c5756680b7d80ab8d8d1aa79fd\"",
-      "fetched_at": "2026-10-28T11:42:31+00:00",
+      "fetched_at": "2026-10-28T11:46:16+00:00",
       "last_modified": null,
       "links": [
         "vless://f439e4fe-139b-4882-ad8b-a16176d09c88@81.222.148.104:443?security=reality&pbk=EltWI8AOqkN8lMjRycweRRoFRah5hu6xiKtgBmQOdE8&type=raw&sni=eu53.cdn77.icu&sid=1ed136481e0ede74&fp=chrome#.%F0%96%A5%94%20%DD%81%20%CB%96%D6%B4%F0%9F%9B%B8%E0%BC%84%CB%96%C2%B0.%20%7C%20%5B%2ACIDR%5D",
@@ -504,7 +504,7 @@
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/32.1.txt": {
       "etag": "W/\"4029753225589417dbb937f2bfe55d3433f1ac12606207898df81b1a91693c48\"",
-      "fetched_at": "2026-10-28T11:42:31+00:00",
+      "fetched_at": "2026-10-28T11:46:16+00:00",
       "last_modified": null,
       "links": [
         "vless://f439e4fe-139b-4882-ad8b-a16176d09c88@81.222.148.104:443?security=reality&pbk=EltWI8AOqkN8lMjRycweRRoFRah5hu6xiKtgBmQOdE8&type=raw&sni=eu53.cdn77.icu&sid=1ed136481e0ede74&fp=chrome#.%F0%96%A5%94%20%DD%81%20%CB%96%D6%B4%F0%9F%9B%B8%E0%BC%84%CB%96%C2%B0.%20%7C%20%5B%2ACIDR%5D",
@@ -583,7 +583,7 @@
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/33.1.txt": {
       "etag": "W/\"6141e261472b3bbd903d5deee0a6ca148ba6aaab5270741ac33d49a88d719ca1\"",
-      "fetched_at": "2026-10-28T11:42:31+00:00",
+      "fetched_at": "2026-10-28T11:46:16+00:00",
       "last_modified": null,
       "links": [
         "vless://7dd69047-047e-422e-a2ba-ed773c34fd1a@37.18.14.43:8443?type=xhttp&security=tls&encryption=none&path=%2Fapi%2Fv1%2Fupload&host=flatcrest.net&sni=flatcrest.net&alpn=http%2F1.1%2Ch2&headerType=none&mode=auto&fp=firefox#%F0%9F%87%A7%F0%9F%87%AC%20Bulgaria%20%7C%20%5B%2ACIDR%5D%20CDN",
@@ -629,7 +629,7 @@
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/34.txt": {
       "etag": "W/\"8f22657e571bc1be496d87acd902e36da089667f647b49884dcbf731120bc2eb\"",
-      "fetched_at": "2026-10-28T11:42:31+00:00",
+      "fetched_at": "2026-10-28T11:46:16+00:00",
       "last_modified": null,
       "links": [
         "vless://6f433cf6-4221-48b2-ad29-01121952ef8a@193.23.218.107:443?Telegram=%40GozargahAzad%2C%40GozargahAzad%2C%40GozargahAzad%2C%40GozargahAzad%2C%40GozargahAzad%2C%40GozargahAzad%2C%40GozargahAzad&security=reality&sni=yandex.ru&pbk=cBTZdCBwrYTTarw6B_lu2TN1M6_Lku68FfWCQT9svhc&sid=cb620aa2f04bce33&type=tcp&flow=xtls-rprx-vision&encryption=none&fp=chrome#%F0%9F%87%A9%F0%9F%87%AA%20Germany%20%7C%20%F0%9F%8C%90%20%7C%20%5BSNI-RU%5D%20yandex.ru",
@@ -639,7 +639,7 @@
     },
     "https://raw.githubusercontent.com/artembsk/vpn-configs-for-russia/main/Vless-Reality-White-Lists-Rus-Mobile.txt": {
       "etag": "W/\"b83187ec09284690c204773ee109ca2d9bc1434013af9461e40914671fbfdd33\"",
-      "fetched_at": "2026-10-28T11:42:31+00:00",
+      "fetched_at": "2026-10-28T11:46:16+00:00",
       "last_modified": null,
       "links": [
         "vless://b2b8bd00-2e42-4875-8d7b-bcf97093a1d4@95.163.211.206:443?flow=xtls-rprx-vision&encryption=none&type=tcp&security=reality&fp=firefox&sni=at.sellflow.org&pbk=SbVKOEMjK0sIlbwg4akyBg5mL5KZwwB-ed4eEE7YnRc#%F0%9F%87%A6%F0%9F%87%B9%20Austria%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D%20VK",
@@ -796,7 +796,7 @@
     },
     "https://raw.githubusercontent.com/artembsk/vpn-configs-for-russia/main/WHITE-CIDR-RU-all.txt": {
       "etag": "W/\"075ae2ecc76bb3c70c0c6de27717bf81795963b00be42f0f0b8ee18bbf3bac09\"",
-      "fetched_at": "2026-10-28T11:42:31+00:00",
+      "fetched_at": "2026-10-28T11:46:16+00:00",
       "last_modified": null,
       "links": [
         "vless://b2b8bd00-2e42-4875-8d7b-bcf97093a1d4@95.163.211.206:443?flow=xtls-rprx-vision&encryption=none&type=tcp&security=reality&fp=firefox&sni=at.sellflow.org&pbk=SbVKOEMjK0sIlbwg4akyBg5mL5KZwwB-ed4eEE7YnRc#%F0%9F%87%A6%F0%9F%87%B9%20Austria%20%7C%20%F0%9F%8C%90%20%5B%2ACIDR%5D%20VK",
@@ -1105,7 +1105,7 @@
     },
     "https://raw.githubusercontent.com/wlunlocker/vpn-configs/main/whitelist_cidr1_ru.txt": {
       "etag": "W/\"9eeedb58b4bb591c8d3b4c153a969d55161b34fde2d1cb666bb9228f28933eb8\"",
-      "fetched_at": "2026-10-28T11:42:31+00:00",
+      "fetched_at": "2026-10-28T11:46:16+00:00",
       "last_modified": null,
       "links": [
         "vless://4fb684c9-977f-4a7c-82a5-1f70fc141510@194.113.235.13:58888?flow=xtls-rprx-vision&encryption=none&type=tcp&security=reality&fp=chrome&sni=sun6-21.userapi.com&pbk=vTATCiPT7A58mmpm0k2qnIlOKqPL5rxcmgXKxzBDLXU&sid=7a3f9e2b1c8d4f6a&spx=%25252525252525252525252525252F#🇷🇺",
@@ -1242,7 +1242,7 @@
     },
     "https://raw.githubusercontent.com/wlunlocker/vpn-configs/main/whitelist_cidr2_ru.txt": {
       "etag": "W/\"fff70400c800248f802676b88b3207614362ae8a4599a05da0c130a58e370f19\"",
-      "fetched_at": "2026-10-28T11:42:31+00:00",
+      "fetched_at": "2026-10-28T11:46:16+00:00",
       "last_modified": null,
       "links": [
         "vless://56022eef-4ade-4240-b0cc-eb006797e7ac@94.126.207.245:443?security=reality&encryption=none&flow=xtls-rprx-vision&fp=chrome&pbk=V32osv0u9T3QItvyk4UgK-mjJuXkXLn4u_3pbk8eNgs&sid=9339&sni=api.vk.com&packetencoding=xudp#🇷🇺",
@@ -1378,7 +1378,7 @@
     },
     "https://raw.githubusercontent.com/wlunlocker/vpn-configs/main/whitelist_cidr3_eu.txt": {
       "etag": "W/\"fec60955f723e2e71898483e4dfd80de6f96569fe76cc902186f8a63cc44ac07\"",
-      "fetched_at": "2026-10-28T11:42:31+00:00",
+      "fetched_at": "2026-10-28T11:46:16+00:00",
       "last_modified": null,
       "links": [
         "vless://f165ea66-6229-4919-9f82-913e02895571@212.192.246.24:443?flow=xtls-rprx-vision&encryption=none&type=tcp&security=reality&fp=qq&sni=tradingview.com&pbk=-tePObR3oZwGAUOb5kqTYkNWl6rtUKl0RFuzuu06wgw&sid=50&spx=/#🌍",
@@ -1406,7 +1406,7 @@
     },
     "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt": {
       "etag": "W/\"232920a34e4c6ed0b073c4a084bbcab9d7c867a3940513724409e0a01ed0b364\"",
-      "fetched_at": "2026-10-28T11:42:31+00:00",
+      "fetched_at": "2026-10-28T11:46:16+00:00",
       "last_modified": null,
       "links": [
         "vless://95a608b6-bff1-4e10-bb61-0a39f221bb7d@78.159.246.85:2053?alpn=h2%2Chttp%2F1.1&encryption=none&extra=%7B%22host%22%3A%22%22%2C%22path%22%3A%22%22%2C%22mode%22%3A%22%22%2C%22headers%22%3Anull%2C%22xPaddingBytes%22%3A%22100-1000%22%2C%22xPaddingObfsMode%22%3Afalse%2C%22xPaddingKey%22%3A%22%22%2C%22xPaddingHeader%22%3A%22%22%2C%22xPaddingPlacement%22%3A%22%22%2C%22xPaddingMethod%22%3A%22%22%2C%22uplinkHTTPMethod%22%3A%22%22%2C%22sessionIDPlacement%22%3A%22%22%2C%22sessionIDKey%22%3A%22%22%2C%22sessionIDTable%22%3A%22%22%2C%22sessionIDLength%22%3A%220%22%2C%22seqPlacement%22%3A%22%22%2C%22seqKey%22%3A%22%22%2C%22uplinkDataPlacement%22%3A%22%22%2C%22uplinkDataKey%22%3A%22%22%2C%22uplinkChunkSize%22%3A%220%22%2C%22noGRPCHeader%22%3Afalse%2C%22noSSEHeader%22%3Afalse%2C%22scMaxEachPostBytes%22%3A%221000000%22%2C%22scMinPostsIntervalMs%22%3A%2230%22%2C%22scMaxBufferedPosts%22%3A0%2C%22scStreamUpServerSecs%22%3A%220%22%2C%22serverMaxHeaderBytes%22%3A0%2C%22xmux%22%3A%7B%22maxConcurrency%22%3A%2216-32%22%2C%22maxConnections%22%3A%220%22%2C%22cMaxReuseTimes%22%3A%2264-128%22%2C%22hMaxRequestTimes%22%3A%220%22%2C%22hMaxReusableSecs%22%3A%220%22%2C%22hKeepAlivePeriod%22%3A0%7D%2C%22downloadSettings%22%3Anull%2C%22extra%22%3Anull%7D&fp=firefox&host=fitindoor.net&mode=auto&path=%2Fapi%2Fv1%2Fupload&security=tls&sni=fitindoor.net&type=xhttp#%F0%9F%87%B7%F0%9F%87%BA%20VK%20%E2%80%94%20%231",
@@ -1542,5 +1542,5 @@
       ]
     }
   },
-  "updated_at": "2026-10-28T11:42:31+00:00"
+  "updated_at": "2026-10-28T11:46:15+00:00"
 }

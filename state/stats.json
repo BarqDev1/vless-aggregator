@@ -9,22 +9,22 @@
   "candidates_after_cap": 466,
   "capped_by_domain": 0,
   "capped_by_endpoint": 328,
-  "capped_by_published_endpoint": 55,
+  "capped_by_published_endpoint": 57,
   "capped_by_subnet": 1,
   "checks": {
     "hysteria2": "xray_hysteria2_e2e",
     "trojan": "xray_e2e",
     "vless": "xray_e2e"
   },
-  "duration_sec": 90.0,
+  "duration_sec": 81.6,
   "e2e": {
-    "cached": 106,
-    "cached_failed": 13,
-    "duration_sec": 32.1,
+    "cached": 108,
+    "cached_failed": 14,
+    "duration_sec": 28.0,
     "enabled": true,
-    "failed": 70,
+    "failed": 61,
     "unsupported": 2,
-    "verified": 2
+    "verified": 0
   },
   "e2e_enabled": true,
   "hysteria2_pinned": 3,
@@ -43,20 +43,20 @@
     },
     "vless": {
       "max": 4477.1,
-      "min": 172.0,
+      "min": 99.1,
       "p50": 1071.7,
-      "p90": 3994.7
+      "p90": 3989.8
     }
   },
   "latency_ms": {
     "max": 4477.1,
-    "min": 172.0,
+    "min": 99.1,
     "p50": 1062.0,
-    "p90": 3989.8
+    "p90": 3202.6
   },
-  "previous_total": 49,
+  "previous_total": 52,
   "raw_links": 1855,
-  "reachable": 197,
+  "reachable": 198,
   "rejected_invalid": 16,
   "source_stats": {
     "git+https://gitlab.com/igareck/vpn-configs-for-russia.git": {
@@ -186,16 +186,16 @@
   "sources_with_data": 8,
   "stability": {
     "bootstrap": 0,
-    "eligible": 108,
-    "held_back": 2,
+    "eligible": 110,
+    "held_back": 0,
     "pruned": 0,
     "tracked": 360,
     "verified": 110
   },
   "tls_inspection": {
-    "failed": 4,
-    "pinned": 9,
-    "valid": 19
+    "failed": 13,
+    "pinned": 6,
+    "valid": 12
   },
   "top_countries": {
     "🇦🇷": 1,
@@ -215,5 +215,5 @@
     "🌐": 4
   },
   "unique_valid": 794,
-  "updated_at": "2026-10-28T10:53:43+00:00"
+  "updated_at": "2026-10-28T10:56:23+00:00"
 }

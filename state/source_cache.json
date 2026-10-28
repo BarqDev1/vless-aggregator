@@ -2,7 +2,7 @@
   "sources": {
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_FULL.txt": {
       "etag": "W/\"d90c5a5af4dde1be15aed518c1fa54f1534c165d98d0e1ebf9c4f57abb14fbde\"",
-      "fetched_at": "2026-10-28T10:45:42+00:00",
+      "fetched_at": "2026-10-28T10:48:56+00:00",
       "last_modified": null,
       "links": [
         "vless://056405e8-de9f-4d0d-8145-956f13cc34da@196.196.204.174:443?encryption=none&type=grpc&security=reality&sni=8fc752g.fi3.h1clayd.click&fp=firefox&pbk=GJzag9Wrvz_bO9AQaA-Oq0P1kV9btmxxAdzPV-uQB18&sid=09d0a94a1c6fc9d5&serviceName=f345a414c040#🇫🇮",
@@ -40,7 +40,7 @@
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_LITE.txt": {
       "etag": "W/\"eda908d2ce8c7783e512e1718525c384eb17f439f63c95aa8d440d897dbd185a\"",
-      "fetched_at": "2026-10-28T10:45:42+00:00",
+      "fetched_at": "2026-10-28T10:48:56+00:00",
       "last_modified": null,
       "links": [
         "vless://056405e8-de9f-4d0d-8145-956f13cc34da@196.196.204.174:443?encryption=none&type=grpc&security=reality&sni=8fc752g.fi3.h1clayd.click&fp=firefox&pbk=GJzag9Wrvz_bO9AQaA-Oq0P1kV9btmxxAdzPV-uQB18&sid=09d0a94a1c6fc9d5&serviceName=f345a414c040#🇫🇮",
@@ -78,7 +78,7 @@
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/26.1.txt": {
       "etag": "W/\"d54575467ff51e5e826e14aa0667179304bc2ea5e7612c099403d8822fe4f693\"",
-      "fetched_at": "2026-10-28T10:45:42+00:00",
+      "fetched_at": "2026-10-28T10:48:56+00:00",
       "last_modified": null,
       "links": [
         "vless://47d9b534-8a0a-4bd2-90f1-1d6ade14427e@150.241.101.80:8443?security=reality&encryption=none&pbk=SbVKOEMjK0sIlbwg4akyBg5mL5KZwwB-ed4eEE7YnRc&headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=yandex.net&sid=6ba85179e30d4fc2#🇩🇪[openproxylist.com]",
@@ -376,7 +376,7 @@
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/30.txt": {
       "etag": "W/\"acca0982fa7b40a4a31fd189efaa56436e330b860e87660485ce9020f094cbfa\"",
-      "fetched_at": "2026-10-28T10:45:42+00:00",
+      "fetched_at": "2026-10-28T10:48:56+00:00",
       "last_modified": null,
       "links": [
         "vless://36cf792c-f07d-4500-97ea-a395e5178deb@ru1.radiolumens.uk:8444?type=grpc&security=tls&fp=qq&sni=ru1.radiolumens.uk&serviceName=beru-uk#.%F0%96%A5%94%20%DD%81%20%CB%96%D6%B4%F0%9F%9B%B8%E0%BC%84%CB%96%C2%B0.%20%7C%20%5B%2ACIDR%5D",
@@ -476,7 +476,7 @@
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/31.txt": {
       "etag": "W/\"29611b38baea04559cb9ea343b208e50063c363b70b4b6c058935dd4c0dfb737\"",
-      "fetched_at": "2026-10-28T10:45:42+00:00",
+      "fetched_at": "2026-10-28T10:48:56+00:00",
       "last_modified": null,
       "links": [
         "vless://36cf792c-f07d-4500-97ea-a395e5178deb@ru1.radiolumens.uk:8444?type=grpc&security=tls&fp=qq&sni=ru1.radiolumens.uk&serviceName=beru-uk#.%F0%96%A5%94%20%DD%81%20%CB%96%D6%B4%F0%9F%9B%B8%E0%BC%84%CB%96%C2%B0.%20%7C%20%5B%2ACIDR%5D",
@@ -576,7 +576,7 @@
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/32.1.txt": {
       "etag": "W/\"fb720a0b26db9fcb2ea013d0779aeac9196c4e5be1e79b2e0aa0d8cc5d953e50\"",
-      "fetched_at": "2026-10-28T10:45:42+00:00",
+      "fetched_at": "2026-10-28T10:48:56+00:00",
       "last_modified": null,
       "links": [
         "vless://36cf792c-f07d-4500-97ea-a395e5178deb@ru1.radiolumens.uk:8444?type=grpc&security=tls&fp=qq&sni=ru1.radiolumens.uk&serviceName=beru-uk#.%F0%96%A5%94%20%DD%81%20%CB%96%D6%B4%F0%9F%9B%B8%E0%BC%84%CB%96%C2%B0.%20%7C%20%5B%2ACIDR%5D",
@@ -1485,7 +1485,7 @@
     },
     "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt": {
       "etag": "W/\"03b4bba201f20cc07176e0b18759ad8be9a6f624adbbc2701e93b1273fb86449\"",
-      "fetched_at": "2026-10-28T10:45:42+00:00",
+      "fetched_at": "2026-10-28T10:48:56+00:00",
       "last_modified": null,
       "links": [
         "vless://95a608b6-bff1-4e10-bb61-0a39f221bb7d@78.159.246.85:2053?alpn=h2%2Chttp%2F1.1&encryption=none&extra=%7B%22host%22%3A%22%22%2C%22path%22%3A%22%22%2C%22mode%22%3A%22%22%2C%22headers%22%3Anull%2C%22xPaddingBytes%22%3A%22100-1000%22%2C%22xPaddingObfsMode%22%3Afalse%2C%22xPaddingKey%22%3A%22%22%2C%22xPaddingHeader%22%3A%22%22%2C%22xPaddingPlacement%22%3A%22%22%2C%22xPaddingMethod%22%3A%22%22%2C%22uplinkHTTPMethod%22%3A%22%22%2C%22sessionIDPlacement%22%3A%22%22%2C%22sessionIDKey%22%3A%22%22%2C%22sessionIDTable%22%3A%22%22%2C%22sessionIDLength%22%3A%220%22%2C%22seqPlacement%22%3A%22%22%2C%22seqKey%22%3A%22%22%2C%22uplinkDataPlacement%22%3A%22%22%2C%22uplinkDataKey%22%3A%22%22%2C%22uplinkChunkSize%22%3A%220%22%2C%22noGRPCHeader%22%3Afalse%2C%22noSSEHeader%22%3Afalse%2C%22scMaxEachPostBytes%22%3A%221000000%22%2C%22scMinPostsIntervalMs%22%3A%2230%22%2C%22scMaxBufferedPosts%22%3A0%2C%22scStreamUpServerSecs%22%3A%220%22%2C%22serverMaxHeaderBytes%22%3A0%2C%22xmux%22%3A%7B%22maxConcurrency%22%3A%2216-32%22%2C%22maxConnections%22%3A%220%22%2C%22cMaxReuseTimes%22%3A%2264-128%22%2C%22hMaxRequestTimes%22%3A%220%22%2C%22hMaxReusableSecs%22%3A%220%22%2C%22hKeepAlivePeriod%22%3A0%7D%2C%22downloadSettings%22%3Anull%2C%22extra%22%3Anull%7D&fp=firefox&host=fitindoor.net&mode=auto&path=%2Fapi%2Fv1%2Fupload&security=tls&sni=fitindoor.net&type=xhttp#%F0%9F%87%B7%F0%9F%87%BA%20VK%20%E2%80%94%20%231",
@@ -1626,5 +1626,5 @@
       ]
     }
   },
-  "updated_at": "2026-10-28T10:45:42+00:00"
+  "updated_at": "2026-10-28T10:48:55+00:00"
 }

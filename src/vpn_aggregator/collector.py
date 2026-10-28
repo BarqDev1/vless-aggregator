@@ -1420,6 +1420,10 @@ async def main() -> int:
         )
 
     alive_nodes = cached_nodes + fresh_nodes
+    verified_nodes = list(alive_nodes)
+    previous_stats = load_previous_stats(STATS_OUTPUT)
+    previous_total = int(previous_stats.get("alive") or read_previous_count(ALL_OUTPUT))
+    previous_protocols = previous_stats.get("alive_by_protocol") or {}
 
     node_history, eligible_ids, stability_stats = update_node_history(
         node_history_state, candidates, alive_nodes, now
@@ -1432,6 +1436,19 @@ async def main() -> int:
     alive_nodes = [
         node for node in alive_nodes if node_history_id(node) in eligible_ids
     ]
+    if (
+        previous_total
+        and len(alive_nodes) < previous_total * (1 - MAX_DROP_RATIO)
+        and len(verified_nodes) >= previous_total * (1 - MAX_DROP_RATIO)
+    ):
+        logger.warning(
+            "Stability filter would collapse the subscription "
+            f"({len(alive_nodes)} < {int(previous_total * (1 - MAX_DROP_RATIO))}); "
+            "publishing all currently verified nodes for this run."
+        )
+        alive_nodes = list(verified_nodes)
+        stability_stats["bypassed"] = True
+        stability_stats["held_back"] = 0
 
     def latency_value(node: dict) -> Optional[float]:
         if E2E_VERIFY and node.get("e2e") in ("verified", "cached") and node.get("e2e_ms") is not None:
@@ -1497,9 +1514,6 @@ async def main() -> int:
             ),
         }
 
-    previous_stats = load_previous_stats(STATS_OUTPUT)
-    previous_total = int(previous_stats.get("alive") or read_previous_count(ALL_OUTPUT))
-    previous_protocols = previous_stats.get("alive_by_protocol") or {}
     baseline_reset = BASELINE_RESET or (
         E2E_VERIFY and not previous_stats.get("e2e_enabled", False)
     )
@@ -1512,13 +1526,24 @@ async def main() -> int:
             "First E2E run: total/protocol drop guard is skipped to establish a new baseline."
         )
 
+    verified_healthy = bool(previous_total) and len(verified_nodes) >= previous_total * (1 - MAX_DROP_RATIO)
+    guard_reset = baseline_reset or (
+        verified_healthy
+        and len(alive_nodes) < previous_total * (1 - MAX_DROP_RATIO)
+    )
+    if guard_reset and not baseline_reset:
+        logger.warning(
+            "Published set is smaller due to caps/network, but the verified count is healthy; "
+            "skipping the total/protocol drop guard for this run."
+        )
+
     try:
         enforce_guard(
             len(alive_nodes),
             previous_total,
             protocol_counts=alive_counts,
             previous_protocols=previous_protocols,
-            allow_baseline_reset=baseline_reset,
+            allow_baseline_reset=guard_reset,
         )
     except GuardError as exc:
         logger.error(f"Output guard triggered: {exc}. Previous files are kept unchanged.")

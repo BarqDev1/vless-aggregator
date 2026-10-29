@@ -150,6 +150,29 @@ Shadowsocks — отдельный файл, потому что в РФ он ч
 
 ---
 
+## 🔒 Приватный репозиторий
+
+Если сделать репозиторий приватным, **raw-ссылки перестанут работать**. Для приватного
+режима используйте готовый Cloudflare Worker:
+
+- `deploy/cloudflare-worker.js` — прокси с GitHub PAT;
+- `deploy/wrangler.toml` — конфиг;
+- `deploy/README.md` — пошаговая инструкция.
+
+Клиенты используют:
+
+```text
+https://sub.example.com/<SUB_KEY>/all
+https://sub.example.com/<SUB_KEY>/vless
+https://sub.example.com/<SUB_KEY>/hy2
+https://sub.example.com/<SUB_KEY>/ss
+```
+
+⚠️ Приватный репозиторий расходует минуты GitHub Actions. При cron раз в 30 минут
+лимита 2000 минут/месяц может не хватить — см. `deploy/README.md`.
+
+---
+
 ## 📁 Структура проекта
 
 ```text
@@ -170,6 +193,10 @@ Shadowsocks — отдельный файл, потому что в РФ он ч
 │   ├── source_health.json
 │   └── source_cache.json
 ├── tests/
+├── deploy/                      # Cloudflare Worker для приватного режима
+│   ├── cloudflare-worker.js
+│   ├── wrangler.toml
+│   └── README.md
 ├── .github/
 │   ├── workflows/update.yml
 │   └── dependabot.yml

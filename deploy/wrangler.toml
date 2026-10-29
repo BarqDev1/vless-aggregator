@@ -1,0 +1,20 @@
+name = "vpn-aggregator-subscriptions"
+main = "cloudflare-worker.js"
+compatibility_date = "2026-10-29"
+workers_dev = true
+
+# Set these as Worker secrets, not in this file:
+#   wrangler secret put GH_TOKEN
+#   wrangler secret put SUB_KEY
+
+[vars]
+GITHUB_REPO = "BarqDev1/vless-aggregator"
+GITHUB_BRANCH = "main"
+PROFILE_TITLE = "BarqDev Multi-Protocol VPN"
+PROFILE_UPDATE_INTERVAL = "0.5"
+SUPPORT_URL = "https://github.com/BarqDev1/vless-aggregator/issues"
+
+# Custom domain example:
+# routes = [
+#   { pattern = "sub.example.com/*", zone_name = "example.com" }
+# ]

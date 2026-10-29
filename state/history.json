@@ -485,23 +485,23 @@
     "timestamp": "2026-10-29T10:30:11+00:00"
   },
   {
-    "alive": 194,
-    "delta": 3,
-    "e2e_cached": 327,
+    "alive": 193,
+    "delta": 2,
+    "e2e_cached": 326,
     "e2e_cached_failed": 31,
-    "e2e_failed": 80,
-    "e2e_verified": 31,
-    "held_back": 31,
-    "latency_p50": 875.7,
+    "e2e_failed": 85,
+    "e2e_verified": 26,
+    "held_back": 26,
+    "latency_p50": 864.2,
     "protocols": {
       "hysteria2": 9,
       "shadowsocks": 88,
       "trojan": 10,
-      "vless": 87
+      "vless": 86
     },
-    "reachable": 504,
+    "reachable": 503,
     "sources_active": 11,
     "sources_quarantined": 5,
-    "timestamp": "2026-10-29T10:33:59+00:00"
+    "timestamp": "2026-10-29T10:36:33+00:00"
   }
 ]

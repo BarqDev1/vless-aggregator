@@ -1,10 +1,10 @@
 {
-  "alive": 194,
+  "alive": 193,
   "alive_by_protocol": {
     "hysteria2": 9,
     "shadowsocks": 88,
     "trojan": 10,
-    "vless": 87
+    "vless": 86
   },
   "baseline_reset": false,
   "candidates_after_cap": 864,
@@ -18,15 +18,15 @@
     "trojan": "xray_e2e",
     "vless": "xray_e2e"
   },
-  "duration_sec": 103.5,
+  "duration_sec": 105.6,
   "e2e": {
-    "cached": 327,
+    "cached": 326,
     "cached_failed": 31,
-    "duration_sec": 40.7,
+    "duration_sec": 41.6,
     "enabled": true,
-    "failed": 80,
+    "failed": 85,
     "unsupported": 3,
-    "verified": 31
+    "verified": 26
   },
   "e2e_enabled": true,
   "hysteria2_pinned": 9,
@@ -51,20 +51,20 @@
     },
     "vless": {
       "max": 4891.1,
-      "min": 130.3,
-      "p50": 1262.3,
+      "min": 125.0,
+      "p50": 1249.2,
       "p90": 4029.7
     }
   },
   "latency_ms": {
     "max": 4891.1,
     "min": 95.0,
-    "p50": 875.7,
+    "p50": 864.2,
     "p90": 3711.6
   },
   "previous_total": 191,
   "raw_links": 2880,
-  "reachable": 504,
+  "reachable": 503,
   "rejected_invalid": 134,
   "source_stats": {
     "git+https://gitlab.com/igareck/vpn-configs-for-russia.git": {
@@ -202,16 +202,16 @@
   "sources_with_data": 11,
   "stability": {
     "bootstrap": 0,
-    "eligible": 330,
-    "held_back": 31,
+    "eligible": 329,
+    "held_back": 26,
     "pruned": 0,
-    "tracked": 704,
-    "verified": 361
+    "tracked": 700,
+    "verified": 355
   },
   "tls_inspection": {
     "failed": 32,
     "pinned": 0,
-    "valid": 22
+    "valid": 21
   },
   "top_countries": {
     "🇧🇬": 7,
@@ -225,11 +225,11 @@
     "🇰🇷": 5,
     "🇳🇱": 19,
     "🇵🇱": 5,
-    "🇷🇺": 17,
+    "🇷🇺": 18,
     "🇸🇬": 4,
-    "🇺🇸": 36,
+    "🇺🇸": 35,
     "🌐": 5
   },
   "unique_valid": 1174,
-  "updated_at": "2026-10-29T10:35:42+00:00"
+  "updated_at": "2026-10-29T10:38:19+00:00"
 }

@@ -73,7 +73,7 @@ def test_meta_contains_subscription_metadata():
     assert meta["profile_update_interval"] == c.PROFILE_UPDATE_INTERVAL
     assert meta["support_url"].startswith("https://")
     assert meta["counts"] == {"total": 4, "trojan": 1, "vless": 3}
-    assert set(meta["subscriptions"]) == {"all", "vless", "hysteria2"}
+    assert set(meta["subscriptions"]) == {"all", "vless", "hysteria2", "shadowsocks"}
 
 
 def test_e2e_cache_freshness(monkeypatch):

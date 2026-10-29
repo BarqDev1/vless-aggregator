@@ -30,3 +30,6 @@ https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/34.
 https://raw.githubusercontent.com/wlunlocker/vpn-configs/main/whitelist_cidr1_ru.txt
 https://raw.githubusercontent.com/wlunlocker/vpn-configs/main/whitelist_cidr2_ru.txt
 https://raw.githubusercontent.com/wlunlocker/vpn-configs/main/whitelist_cidr3_eu.txt
+
+# 6. Shadowsocks (optional, blocked by TSPU in RU)
+https://raw.githubusercontent.com/0xRadikal/Free-v2ray-Configs/main/protocols/shadowsocks.txt

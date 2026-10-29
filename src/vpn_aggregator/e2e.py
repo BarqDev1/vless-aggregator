@@ -142,6 +142,25 @@ def build_xray_config(node: dict, listen_port: int) -> Optional[dict]:
         "settings": {"timeout": 0},
     }
 
+    if node.get("scheme") == "shadowsocks":
+        method = node.get("method")
+        if not method or not node.get("credential"):
+            return None
+        ss_outbound: Dict[str, object] = {
+            "protocol": "shadowsocks",
+            "settings": {
+                "address": node["host"],
+                "port": node["port"],
+                "method": method,
+                "password": node["credential"],
+            },
+        }
+        return {
+            "log": {"loglevel": "error"},
+            "inbounds": [inbound],
+            "outbounds": [ss_outbound],
+        }
+
     if node.get("scheme") == "hysteria2":
         certificate = node.get("tls_cert_sha256")
         if not certificate:

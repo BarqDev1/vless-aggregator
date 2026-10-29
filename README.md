@@ -8,11 +8,11 @@
 Автоматический сборщик, валидатор, дедупликатор и чекер VPN-конфигов из открытых источников.
 Поддерживаются **VLESS**, **Trojan** и **Hysteria 2**. Флаги стран нормализуются для балансировщиков Remnawave.
 
-> **VMess и Shadowsocks намеренно исключены.** VMess — по политике проекта, Shadowsocks — из-за нестабильности за TSPU.
+> **VMess намеренно исключён.** Shadowsocks поддерживается, но в РФ часто блокируется TSPU — добавляйте с осторожностью.
 
 ## ✨ Возможности
 
-- 🌐 **Протоколы:** `vless://`, `trojan://`, `hysteria2://` (`hy2://` приводится к `hysteria2`).
+- 🌐 **Протоколы:** `vless://`, `trojan://`, `hysteria2://` (`hy2://` → `hysteria2`), `ss://` (Shadowsocks).
 - ✅ **Валидация до проверки:** UUID (VLESS), `pbk` для Reality, непустой пароль Trojan, корректные host/port.
 - ⚡ **Двухступенчатая проверка:**
   - быстрый префильтр: TCP connect для VLESS/Trojan, QUIC v1 handshake (ALPN `h3`) для Hysteria2;
@@ -72,6 +72,7 @@
 ├── tests/
 ├── vless_universal.txt        # публичные подписки — намеренно в корне,
 ├── hysteria2.txt              # чтобы старые raw-URL не ломались
+├── shadowsocks.txt
 └── all_universal.txt
 ```
 
@@ -84,7 +85,8 @@
 |---|---|---|
 | **`vless_universal.txt`** | Только VLESS | **Для балансировщиков в Remnawave** («Сгруппировать в балансировщики» **ВКЛ**) |
 | **`hysteria2.txt`** | Только Hysteria 2 | Для прямого добавления в подписку («Сгруппировать в балансировщики» **ВЫКЛ**) |
-| **`all_universal.txt`** | Все проверенные ноды (VLESS + Trojan + Hy2) | Для прямого добавления всех протоколов |
+| **`shadowsocks.txt`** | Только Shadowsocks | Для клиентов, где SS разрешён |
+| **`all_universal.txt`** | Все проверенные ноды (VLESS + Trojan + Hy2 + SS) | Для прямого добавления всех протоколов |
 | **`state/stats.json`** | Статистика последнего прогона | Для мониторинга качества |
 | **`state/history.json`** | История прогонов (alive, latency, delta) | Для графиков и бейджей |
 | **`state/meta.json`** | Метаданные подписки | Для nginx/Remnawave/клиентов |
@@ -101,6 +103,7 @@
 ```text
 https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/vless_universal.txt
 https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/hysteria2.txt
+https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/shadowsocks.txt
 https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/all_universal.txt
 https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/state/stats.json
 https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/state/meta.json
@@ -122,7 +125,8 @@ https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/state/history.j
   "subscriptions": {
     "all": ".../all_universal.txt",
     "vless": ".../vless_universal.txt",
-    "hysteria2": ".../hysteria2.txt"
+    "hysteria2": ".../hysteria2.txt",
+    "shadowsocks": ".../shadowsocks.txt"
   }
 }
 ```
@@ -198,6 +202,7 @@ https://domain.com/sub/token
 | `SOURCES_FILE` | `config/sources.txt` | Список источников |
 | `VLESS_OUTPUT` | `vless_universal.txt` | Выход VLESS |
 | `HY2_OUTPUT` | `hysteria2.txt` | Выход Hysteria2 |
+| `SS_OUTPUT` | `shadowsocks.txt` | Выход Shadowsocks |
 | `ALL_OUTPUT` | `all_universal.txt` | Выход всех протоколов |
 | `STATS_OUTPUT` | `state/stats.json` | Статистика |
 | `PING_TIMEOUT` | `3.0` | Таймаут TCP-проверки, сек |

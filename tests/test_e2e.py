@@ -79,6 +79,20 @@ def test_xray_hysteria2_pinned_config():
     assert "insecure" not in outbound["streamSettings"]["tlsSettings"]
 
 
+def test_xray_shadowsocks_config():
+    node = c.parse_vpn_link(
+        "ss://" + __import__("base64").b64encode(b"aes-256-gcm:secret").decode()
+        + "@example.com:8388#node"
+    )
+    assert node is not None
+    config = e2e.build_xray_config(node, 1080)
+    assert config is not None
+    outbound = config["outbounds"][0]
+    assert outbound["protocol"] == "shadowsocks"
+    assert outbound["settings"]["method"] == "aes-256-gcm"
+    assert outbound["settings"]["password"] == "secret"
+
+
 def test_unsupported_transport_returns_none():
     node = _vless("type=quic")
     assert e2e.build_xray_config(node, 1080) is None

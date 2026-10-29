@@ -64,6 +64,7 @@ def _project_path(*parts: str) -> str:
 SOURCES_FILE = os.getenv("SOURCES_FILE", _project_path("config", "sources.txt"))
 VLESS_OUTPUT = os.getenv("VLESS_OUTPUT", _project_path("vless_universal.txt"))
 HY2_OUTPUT = os.getenv("HY2_OUTPUT", _project_path("hysteria2.txt"))
+SS_OUTPUT = os.getenv("SS_OUTPUT", _project_path("shadowsocks.txt"))
 ALL_OUTPUT = os.getenv("ALL_OUTPUT", _project_path("all_universal.txt"))
 STATS_OUTPUT = os.getenv("STATS_OUTPUT", _project_path("state", "stats.json"))
 SOURCE_HEALTH_FILE = os.getenv(
@@ -162,14 +163,23 @@ for _handler in logging.getLogger().handlers:
 FLAG_REGEX = re.compile(r"[\U0001F1E6-\U0001F1FF]{2}")
 COUNTRY_CODE_REGEX = re.compile(r"(?:^|[\s\[(_\-|])([A-Z]{2})(?:[\s\])_\-|.,;:]|$)")
 SCHEME_ALIASES = {"hy2": "hysteria2"}
-SUPPORTED_SCHEMES = ("vless", "trojan", "hysteria2")
-SUPPORTED_PREFIXES = tuple(f"{s}://" for s in ("vless", "trojan", "hysteria2", "hy2"))
+SUPPORTED_SCHEMES = ("vless", "trojan", "hysteria2", "shadowsocks")
+SUPPORTED_PREFIXES = tuple(f"{s}://" for s in ("vless", "trojan", "hysteria2", "hy2", "ss"))
 
 # Protocols that are deliberately excluded from this aggregator.
-EXCLUDED_PREFIXES = ("vmess://", "ss://", "ssr://", "tuic://")
+EXCLUDED_PREFIXES = ("vmess://", "ssr://", "tuic://")
 
-LINK_REGEX = re.compile(r"(?:vless|trojan|hysteria2|hy2)://[^\s\"'<>\\]+", re.IGNORECASE)
+LINK_REGEX = re.compile(r"(?<![A-Za-z0-9])(?:vless|trojan|hysteria2|hy2|ss)://[^\s\"'<>\\]+", re.IGNORECASE)
 UUID_REGEX = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+SS_METHODS = {
+    "aes-128-gcm", "aes-192-gcm", "aes-256-gcm",
+    "aes-128-cfb", "aes-192-cfb", "aes-256-cfb",
+    "aes-128-ctr", "aes-192-ctr", "aes-256-ctr",
+    "chacha20", "chacha20-ietf", "chacha20-poly1305", "chacha20-ietf-poly1305",
+    "xchacha20", "xchacha20-ietf", "xchacha20-poly1305", "xchacha20-ietf-poly1305",
+    "2022-blake3-aes-128-gcm", "2022-blake3-aes-256-gcm", "2022-blake3-chacha20-poly1305",
+    "rc4-md5",
+}
 INVISIBLE_REGEX = re.compile(r"[\x00-\x1f\x7f\u200b-\u200f\u202a-\u202e\ufeff]")
 HOST_LABEL_REGEX = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9])?$")
 
@@ -266,6 +276,103 @@ def _parse_host_port(host_port: str) -> Optional[Tuple[str, int]]:
     return host, 0
 
 
+def _b64_text(value: str) -> Optional[str]:
+    compact = value.strip()
+    if not compact:
+        return None
+    padded = compact + "=" * (-len(compact) % 4)
+    for decoder in (base64.urlsafe_b64decode, base64.b64decode):
+        try:
+            decoded = decoder(padded).decode("utf-8")
+        except (binascii.Error, ValueError, UnicodeDecodeError):
+            continue
+        if decoded:
+            return decoded
+    return None
+
+
+def _ss_credentials(userinfo: str) -> Optional[Tuple[str, str]]:
+    for candidate in (urllib.parse.unquote(userinfo), _b64_text(userinfo) or ""):
+        if ":" not in candidate:
+            continue
+        method, password = candidate.split(":", 1)
+        method = method.strip().lower()
+        if method in SS_METHODS and password:
+            return method, password
+    return None
+
+
+def _parse_ss_link(link: str) -> Optional[dict]:
+    rest = link[5:]
+    url_part, _, raw_remark = rest.partition("#")
+    remark = sanitize_remark(urllib.parse.unquote(raw_remark))
+    base, separator, raw_query = url_part.partition("?")
+    if separator:
+        query = urllib.parse.parse_qs(raw_query, keep_blank_values=True)
+        if query.get("plugin"):
+            return None  # Xray does not support Shadowsocks plugins
+
+    host = port = None
+    credentials: Optional[Tuple[str, str]] = None
+
+    if "@" in base:
+        first = base.partition("@")
+        last = base.rpartition("@")
+        candidates = [(first[0], first[2])]
+        if last[1] and last[0] != candidates[0][0]:
+            candidates.append((last[0], last[2]))
+        for userinfo, host_port in candidates:
+            parsed_host = _parse_host_port(host_port)
+            if not parsed_host or not _valid_host(parsed_host[0]):
+                continue
+            parsed_credentials = _ss_credentials(userinfo)
+            if not parsed_credentials:
+                continue
+            credentials = parsed_credentials
+            host, port = parsed_host
+            break
+    else:
+        decoded = _b64_text(base)
+        if decoded and "@" in decoded:
+            userinfo, host_port = decoded.rsplit("@", 1)
+            parsed_host = _parse_host_port(host_port)
+            if parsed_host and _valid_host(parsed_host[0]):
+                credentials = _ss_credentials(userinfo)
+                if credentials:
+                    host, port = parsed_host
+
+    if not credentials or not host:
+        return None
+    method, password = credentials
+    port = port or 8388
+    if not 0 < port < 65536:
+        return None
+
+    flag = _detect_flag(remark)
+    if not flag:
+        flag = "🌐"
+    elif flag not in remark:
+        remark = sanitize_remark(f"{flag} {remark}")
+
+    return {
+        "scheme": "shadowsocks",
+        "link": link,
+        "host": host,
+        "port": port,
+        "sni": "",
+        "security": "",
+        "flag": flag,
+        "remark": remark or "🌐",
+        "transport": "tcp",
+        "credential": password,
+        "method": method,
+        "query": {},
+        "tls_mode": None,
+        "tls_cert_sha256": None,
+        "dedup_key": f"shadowsocks|{host.lower()}|{port}|{method}|{password}",
+    }
+
+
 def parse_vpn_link(link: str) -> Optional[dict]:
     """Parses and validates a supported VPN URI into structured fields."""
     link = link.strip()
@@ -274,8 +381,10 @@ def parse_vpn_link(link: str) -> Optional[dict]:
 
     scheme, sep, rest = link.partition("://")
     scheme = scheme.lower()
-    if not sep or scheme not in ("vless", "trojan", "hysteria2", "hy2"):
+    if not sep or scheme not in ("vless", "trojan", "hysteria2", "hy2", "ss"):
         return None
+    if scheme == "ss":
+        return _parse_ss_link(link)
 
     canonical = SCHEME_ALIASES.get(scheme, scheme)
     url_part, _, raw_remark = rest.partition("#")
@@ -718,6 +827,9 @@ def format_link(node: dict) -> str:
     location, separator, query = rest.partition("?")
     pairs = urllib.parse.parse_qsl(query, keep_blank_values=True) if separator else []
 
+    if node["scheme"] == "shadowsocks":
+        return f"{base_link}#{urllib.parse.quote(node['remark'], safe='')}"
+
     if node["scheme"] in ("vless", "trojan"):
         pairs = [
             (key, value)
@@ -1122,6 +1234,7 @@ def build_meta(alive_counts: Dict[str, int], total: int, now: datetime) -> dict:
             "all": f"{raw_base}/all_universal.txt",
             "vless": f"{raw_base}/vless_universal.txt",
             "hysteria2": f"{raw_base}/hysteria2.txt",
+            "shadowsocks": f"{raw_base}/shadowsocks.txt",
         },
     }
 
@@ -1585,13 +1698,16 @@ async def main() -> int:
 
     vless_lines = [format_link(node) for node in alive_nodes if node["scheme"] == "vless"]
     hy2_lines = [format_link(node) for node in alive_nodes if node["scheme"] == "hysteria2"]
+    ss_lines = [format_link(node) for node in alive_nodes if node["scheme"] == "shadowsocks"]
     all_lines = [format_link(node) for node in alive_nodes]
 
     write_atomic(VLESS_OUTPUT, vless_lines)
     write_atomic(HY2_OUTPUT, hy2_lines)
+    write_atomic(SS_OUTPUT, ss_lines)
     write_atomic(ALL_OUTPUT, all_lines)
     logger.info(f"Exported {len(vless_lines)} VLESS nodes -> {VLESS_OUTPUT}")
     logger.info(f"Exported {len(hy2_lines)} Hysteria2 nodes -> {HY2_OUTPUT}")
+    logger.info(f"Exported {len(ss_lines)} Shadowsocks nodes -> {SS_OUTPUT}")
     logger.info(f"Exported {len(all_lines)} all-protocol nodes -> {ALL_OUTPUT}")
 
     elapsed = round(time.monotonic() - started, 1)
@@ -1641,6 +1757,7 @@ async def main() -> int:
                     if E2E_VERIFY
                     else ("quic_v1_handshake_h3" if HAS_AIOQUIC else "unverified")
                 ),
+                "shadowsocks": "xray_e2e" if E2E_VERIFY else "tcp_connect",
             },
         },
     )

@@ -93,14 +93,14 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           rm -rf /tmp/generated
           mkdir -p /tmp/generated/state
-          cp vless_universal.txt hysteria2.txt all_universal.txt /tmp/generated/
+          cp vless_universal.txt hysteria2.txt shadowsocks.txt all_universal.txt /tmp/generated/
           cp state/*.json /tmp/generated/state/
 
           push_generated() {
             git fetch -q origin main
             git reset --hard -q FETCH_HEAD
             cp -R /tmp/generated/. .
-            git add vless_universal.txt hysteria2.txt all_universal.txt state/
+            git add vless_universal.txt hysteria2.txt shadowsocks.txt all_universal.txt state/
             if git diff --staged --quiet; then
               echo "No changes to commit"
             else

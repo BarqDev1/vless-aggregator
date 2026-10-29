@@ -12,6 +12,7 @@ VLESS = (
 )
 TROJAN = "trojan://secret@example.com:8443?security=tls&sni=example.com#NL%20node"
 HY2 = "hysteria2://auth@example.com:443?sni=example.com&insecure=1#Japan"
+SS = "ss://" + base64.b64encode(b"aes-256-gcm:secret").decode() + "@example.com:8388#SS%20node"
 
 
 def test_parse_vless():
@@ -30,6 +31,31 @@ def test_parse_trojan_default_port():
     assert node is not None
     assert node["scheme"] == "trojan"
     assert node["port"] == 8443
+
+
+def test_parse_shadowsocks_sip002():
+    node = c.parse_vpn_link(SS)
+    assert node is not None
+    assert node["scheme"] == "shadowsocks"
+    assert node["host"] == "example.com"
+    assert node["port"] == 8388
+    assert node["method"] == "aes-256-gcm"
+    assert node["credential"] == "secret"
+
+
+def test_parse_shadowsocks_legacy():
+    payload = base64.b64encode(b"chacha20-ietf-poly1305:pass@example.com:443").decode()
+    node = c.parse_vpn_link(f"ss://{payload}#Legacy")
+    assert node is not None
+    assert node["scheme"] == "shadowsocks"
+    assert node["host"] == "example.com"
+    assert node["method"] == "chacha20-ietf-poly1305"
+
+
+def test_rejects_shadowsocks_plugin():
+    payload = base64.b64encode(b"aes-256-gcm:pass").decode()
+    link = f"ss://{payload}@example.com:8388?plugin=obfs-local%3Bobfs%3Dhttp#node"
+    assert c.parse_vpn_link(link) is None
 
 
 def test_parse_hy2_alias_is_canonical():
@@ -88,7 +114,7 @@ def test_rejects_bad_ports():
 
 def test_rejects_unsupported_and_junk():
     assert c.parse_vpn_link("vmess://eyJhZGQiOiIxLjIuMy40In0=") is None
-    assert c.parse_vpn_link("ss://YWVzLTI1Ni1nY206cGFzcw==@1.2.3.4:8388") is None
+    assert c.parse_vpn_link("ssr://YWVzLTI1Ni1nY206cGFzcw==@1.2.3.4:8388") is None
     assert c.parse_vpn_link("vless://") is None
     assert c.parse_vpn_link("vless://،") is None
     assert c.parse_vpn_link("vless://uuid@bad host:443") is None

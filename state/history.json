@@ -426,79 +426,62 @@
     "timestamp": "2026-10-28T11:46:15+00:00"
   },
   {
-    "alive": 65,
-    "delta": -2,
+    "alive": 42,
+    "delta": -25,
     "e2e_cached": 0,
     "e2e_cached_failed": 0,
-    "e2e_failed": 127,
-    "e2e_verified": 154,
-    "held_back": 66,
-    "latency_p50": 778.1,
+    "e2e_failed": 184,
+    "e2e_verified": 259,
+    "held_back": 204,
+    "latency_p50": 986.0,
     "protocols": {
-      "hysteria2": 4,
-      "trojan": 3,
-      "vless": 58
+      "hysteria2": 2,
+      "trojan": 4,
+      "vless": 36
     },
-    "reachable": 305,
-    "sources_active": 15,
+    "reachable": 480,
+    "sources_active": 16,
     "sources_quarantined": 0,
-    "timestamp": "2026-10-28T16:53:00+00:00"
+    "timestamp": "2026-10-29T10:22:33+00:00"
   },
   {
-    "alive": 27,
-    "delta": -38,
-    "e2e_cached": 0,
-    "e2e_cached_failed": 0,
-    "e2e_failed": 102,
-    "e2e_verified": 110,
-    "held_back": 65,
-    "latency_p50": 554.0,
-    "protocols": {
-      "hysteria2": 3,
-      "trojan": 3,
-      "vless": 21
-    },
-    "reachable": 243,
-    "sources_active": 15,
-    "sources_quarantined": 0,
-    "timestamp": "2026-10-28T21:25:05+00:00"
-  },
-  {
-    "alive": 62,
-    "delta": 35,
-    "e2e_cached": 0,
-    "e2e_cached_failed": 0,
-    "e2e_failed": 102,
-    "e2e_verified": 287,
-    "held_back": 192,
-    "latency_p50": 660.7,
+    "alive": 154,
+    "delta": 112,
+    "e2e_cached": 256,
+    "e2e_cached_failed": 30,
+    "e2e_failed": 147,
+    "e2e_verified": 67,
+    "held_back": 67,
+    "latency_p50": 907.3,
     "protocols": {
       "hysteria2": 8,
-      "trojan": 7,
-      "vless": 47
+      "shadowsocks": 59,
+      "trojan": 9,
+      "vless": 78
     },
-    "reachable": 418,
-    "sources_active": 15,
+    "reachable": 539,
+    "sources_active": 16,
     "sources_quarantined": 0,
-    "timestamp": "2026-10-29T01:06:02+00:00"
+    "timestamp": "2026-10-29T10:26:04+00:00"
   },
   {
-    "alive": 46,
-    "delta": -16,
-    "e2e_cached": 0,
-    "e2e_cached_failed": 0,
-    "e2e_failed": 117,
-    "e2e_verified": 124,
-    "held_back": 55,
-    "latency_p50": 635.4,
+    "alive": 191,
+    "delta": 37,
+    "e2e_cached": 322,
+    "e2e_cached_failed": 30,
+    "e2e_failed": 148,
+    "e2e_verified": 14,
+    "held_back": 13,
+    "latency_p50": 887.2,
     "protocols": {
-      "hysteria2": 3,
-      "trojan": 8,
-      "vless": 35
+      "hysteria2": 9,
+      "shadowsocks": 88,
+      "trojan": 9,
+      "vless": 85
     },
-    "reachable": 280,
-    "sources_active": 15,
+    "reachable": 551,
+    "sources_active": 16,
     "sources_quarantined": 0,
-    "timestamp": "2026-10-29T07:19:10+00:00"
+    "timestamp": "2026-10-29T10:30:11+00:00"
   }
 ]

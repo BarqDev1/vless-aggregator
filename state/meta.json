@@ -1,9 +1,9 @@
 {
   "counts": {
-    "hysteria2": 4,
-    "shadowsocks": 27,
-    "total": 64,
-    "trojan": 8,
+    "hysteria2": 3,
+    "shadowsocks": 43,
+    "total": 80,
+    "trojan": 9,
     "vless": 25
   },
   "home_url": "https://github.com/BarqDev1/vless-aggregator",
@@ -17,5 +17,5 @@
     "vless": "https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/vless_universal.txt"
   },
   "support_url": "https://github.com/BarqDev1/vless-aggregator/issues",
-  "updated_at": "2026-10-29T23:42:52+00:00"
+  "updated_at": "2026-10-30T03:14:57+00:00"
 }

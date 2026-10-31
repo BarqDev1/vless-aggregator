@@ -1,103 +1,103 @@
 {
-  "alive": 123,
+  "alive": 91,
   "alive_by_protocol": {
-    "hysteria2": 3,
-    "shadowsocks": 83,
-    "trojan": 11,
-    "vless": 26
+    "hysteria2": 5,
+    "shadowsocks": 46,
+    "trojan": 10,
+    "vless": 30
   },
   "baseline_reset": false,
-  "candidates_after_cap": 1058,
+  "candidates_after_cap": 883,
   "capped_by_domain": 0,
-  "capped_by_endpoint": 522,
-  "capped_by_published_endpoint": 40,
-  "capped_by_subnet": 73,
+  "capped_by_endpoint": 536,
+  "capped_by_published_endpoint": 50,
+  "capped_by_subnet": 39,
   "checks": {
     "hysteria2": "xray_hysteria2_e2e",
     "shadowsocks": "xray_e2e",
     "trojan": "xray_e2e",
     "vless": "xray_e2e"
   },
-  "duration_sec": 187.7,
+  "duration_sec": 143.5,
   "e2e": {
     "cached": 0,
     "cached_failed": 0,
-    "duration_sec": 105.1,
+    "duration_sec": 68.6,
     "enabled": true,
-    "failed": 158,
-    "unsupported": 6,
-    "verified": 292
+    "failed": 123,
+    "unsupported": 2,
+    "verified": 235
   },
   "e2e_enabled": true,
-  "hysteria2_pinned": 3,
+  "hysteria2_pinned": 5,
   "latency_by_protocol": {
     "hysteria2": {
-      "max": 1787.3,
-      "min": 480.6,
-      "p50": 580.3,
-      "p90": 1787.3
+      "max": 1096.1,
+      "min": 330.8,
+      "p50": 551.6,
+      "p90": 1096.1
     },
     "shadowsocks": {
-      "max": 4299.2,
-      "min": 52.2,
-      "p50": 322.6,
-      "p90": 1171.0
+      "max": 2129.7,
+      "min": 38.1,
+      "p50": 266.6,
+      "p90": 686.9
     },
     "trojan": {
-      "max": 2524.3,
-      "min": 62.1,
-      "p50": 506.0,
-      "p90": 2429.3
+      "max": 1020.0,
+      "min": 132.6,
+      "p50": 383.1,
+      "p90": 988.4
     },
     "vless": {
-      "max": 2674.1,
-      "min": 60.0,
-      "p50": 839.4,
-      "p90": 1785.9
+      "max": 4865.8,
+      "min": 88.3,
+      "p50": 660.9,
+      "p90": 1903.3
     }
   },
   "latency_ms": {
-    "max": 4299.2,
-    "min": 52.2,
-    "p50": 351.8,
-    "p90": 1787.3
+    "max": 4865.8,
+    "min": 38.1,
+    "p50": 381.7,
+    "p90": 1096.1
   },
-  "previous_total": 98,
-  "raw_links": 3273,
-  "reachable": 484,
-  "rejected_invalid": 172,
+  "previous_total": 123,
+  "raw_links": 3219,
+  "reachable": 382,
+  "rejected_invalid": 54,
   "source_stats": {
     "git+https://gitlab.com/igareck/vpn-configs-for-russia.git": {
       "active": true,
-      "alive": 32,
+      "alive": 37,
       "quarantined": false,
-      "raw": 1427,
-      "unique": 334,
+      "raw": 1664,
+      "unique": 375,
       "yield": 0.022
     },
     "https://raw.githubusercontent.com/0xRadikal/Free-v2ray-Configs/main/protocols/shadowsocks.txt": {
       "active": true,
-      "alive": 83,
+      "alive": 37,
       "quarantined": false,
-      "raw": 465,
-      "unique": 357,
-      "yield": 0.178
+      "raw": 161,
+      "unique": 141,
+      "yield": 0.23
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_FULL.txt": {
       "active": true,
-      "alive": 11,
+      "alive": 15,
       "quarantined": false,
       "raw": 33,
       "unique": 33,
-      "yield": 0.333
+      "yield": 0.455
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_LITE.txt": {
       "active": true,
-      "alive": 11,
+      "alive": 15,
       "quarantined": false,
       "raw": 31,
       "unique": 31,
-      "yield": 0.355
+      "yield": 0.484
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/26.1.txt": {
       "active": true,
@@ -111,25 +111,25 @@
       "active": true,
       "alive": 3,
       "quarantined": false,
-      "raw": 55,
-      "unique": 51,
-      "yield": 0.055
+      "raw": 67,
+      "unique": 67,
+      "yield": 0.045
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/31.txt": {
       "active": true,
       "alive": 3,
       "quarantined": false,
-      "raw": 55,
-      "unique": 51,
-      "yield": 0.055
+      "raw": 67,
+      "unique": 67,
+      "yield": 0.045
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/32.1.txt": {
       "active": true,
-      "alive": 3,
+      "alive": 4,
       "quarantined": false,
-      "raw": 96,
-      "unique": 92,
-      "yield": 0.031
+      "raw": 101,
+      "unique": 101,
+      "yield": 0.04
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/33.1.txt": {
       "active": true,
@@ -175,8 +175,8 @@
       "active": true,
       "alive": 0,
       "quarantined": false,
-      "raw": 129,
-      "unique": 122,
+      "raw": 117,
+      "unique": 110,
       "yield": 0.0
     },
     "https://raw.githubusercontent.com/wlunlocker/vpn-configs/main/whitelist_cidr3_eu.txt": {
@@ -189,11 +189,11 @@
     },
     "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt": {
       "active": true,
-      "alive": 6,
+      "alive": 9,
       "quarantined": false,
-      "raw": 85,
-      "unique": 85,
-      "yield": 0.071
+      "raw": 81,
+      "unique": 81,
+      "yield": 0.111
     }
   },
   "sources_active": 16,
@@ -202,34 +202,34 @@
   "sources_with_data": 15,
   "stability": {
     "bootstrap": 0,
-    "eligible": 236,
-    "held_back": 62,
+    "eligible": 180,
+    "held_back": 57,
     "pruned": 0,
-    "tracked": 1098,
-    "verified": 298
+    "tracked": 1148,
+    "verified": 237
   },
   "tls_inspection": {
-    "failed": 28,
-    "pinned": 12,
-    "valid": 82
+    "failed": 22,
+    "pinned": 10,
+    "valid": 88
   },
   "top_countries": {
     "🇨🇦": 8,
-    "🇨🇭": 1,
     "🇩🇪": 8,
-    "🇫🇷": 7,
-    "🇬🇧": 7,
-    "🇮🇹": 4,
+    "🇪🇪": 1,
+    "🇫🇮": 2,
+    "🇫🇷": 8,
+    "🇬🇧": 6,
+    "🇮🇹": 3,
     "🇯🇵": 5,
     "🇰🇷": 3,
-    "🇳🇱": 18,
-    "🇵🇱": 8,
-    "🇷🇺": 8,
-    "🇸🇬": 1,
-    "🇺🇸": 27,
-    "🇿🇦": 2,
-    "🌐": 8
+    "🇱🇻": 1,
+    "🇳🇱": 9,
+    "🇵🇱": 3,
+    "🇷🇺": 7,
+    "🇺🇸": 15,
+    "🌐": 6
   },
-  "unique_valid": 1580,
-  "updated_at": "2026-10-30T21:16:24+00:00"
+  "unique_valid": 1419,
+  "updated_at": "2026-10-31T00:57:15+00:00"
 }

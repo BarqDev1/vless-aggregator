@@ -2,32 +2,32 @@
   "sources": {
     "git+https://gitlab.com/igareck/vpn-configs-for-russia.git": {
       "consecutive_failures": 0,
-      "last_alive": 34,
-      "last_checked_at": "2026-10-31T06:25:42+00:00",
-      "last_raw": 1891,
-      "last_unique": 414,
+      "last_alive": 21,
+      "last_checked_at": "2026-10-31T12:52:31+00:00",
+      "last_raw": 1475,
+      "last_unique": 348,
       "quarantined_until": null
     },
     "https://raw.githubusercontent.com/0xRadikal/Free-v2ray-Configs/main/protocols/shadowsocks.txt": {
       "consecutive_failures": 0,
-      "last_alive": 86,
-      "last_checked_at": "2026-10-31T06:25:42+00:00",
-      "last_raw": 817,
-      "last_unique": 482,
+      "last_alive": 36,
+      "last_checked_at": "2026-10-31T12:52:31+00:00",
+      "last_raw": 169,
+      "last_unique": 148,
       "quarantined_until": null
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_FULL.txt": {
       "consecutive_failures": 0,
-      "last_alive": 13,
-      "last_checked_at": "2026-10-31T06:25:42+00:00",
+      "last_alive": 11,
+      "last_checked_at": "2026-10-31T12:52:31+00:00",
       "last_raw": 33,
       "last_unique": 33,
       "quarantined_until": null
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_LITE.txt": {
       "consecutive_failures": 0,
-      "last_alive": 13,
-      "last_checked_at": "2026-10-31T06:25:42+00:00",
+      "last_alive": 11,
+      "last_checked_at": "2026-10-31T12:52:31+00:00",
       "last_raw": 31,
       "last_unique": 31,
       "quarantined_until": null
@@ -35,99 +35,99 @@
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/26.1.txt": {
       "consecutive_failures": 0,
       "last_alive": 2,
-      "last_checked_at": "2026-10-31T06:25:42+00:00",
+      "last_checked_at": "2026-10-31T12:52:31+00:00",
       "last_raw": 291,
       "last_unique": 287,
       "quarantined_until": null
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/30.txt": {
-      "consecutive_failures": 0,
-      "last_alive": 4,
-      "last_checked_at": "2026-10-31T06:25:42+00:00",
-      "last_raw": 82,
-      "last_unique": 82,
+      "consecutive_failures": 1,
+      "last_alive": 0,
+      "last_checked_at": "2026-10-31T12:52:31+00:00",
+      "last_raw": 63,
+      "last_unique": 63,
       "quarantined_until": null
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/31.txt": {
-      "consecutive_failures": 0,
-      "last_alive": 4,
-      "last_checked_at": "2026-10-31T06:25:42+00:00",
-      "last_raw": 82,
-      "last_unique": 82,
+      "consecutive_failures": 1,
+      "last_alive": 0,
+      "last_checked_at": "2026-10-31T12:52:31+00:00",
+      "last_raw": 63,
+      "last_unique": 63,
       "quarantined_until": null
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/32.1.txt": {
-      "consecutive_failures": 0,
-      "last_alive": 4,
-      "last_checked_at": "2026-10-31T06:25:42+00:00",
-      "last_raw": 128,
-      "last_unique": 128,
+      "consecutive_failures": 1,
+      "last_alive": 0,
+      "last_checked_at": "2026-10-31T12:52:31+00:00",
+      "last_raw": 27,
+      "last_unique": 26,
       "quarantined_until": null
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/33.1.txt": {
-      "consecutive_failures": 4,
+      "consecutive_failures": 5,
       "last_alive": 0,
-      "last_checked_at": "2026-10-31T06:25:42+00:00",
-      "last_raw": 2,
-      "last_unique": 2,
-      "quarantined_until": null
+      "last_checked_at": "2026-10-31T12:52:31+00:00",
+      "last_raw": 3,
+      "last_unique": 3,
+      "quarantined_until": "2026-10-31T14:52:31+00:00"
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/34.txt": {
       "consecutive_failures": 0,
       "last_alive": 1,
-      "last_checked_at": "2026-10-31T06:25:42+00:00",
+      "last_checked_at": "2026-10-31T12:52:31+00:00",
       "last_raw": 3,
       "last_unique": 3,
       "quarantined_until": null
     },
     "https://raw.githubusercontent.com/artembsk/vpn-configs-for-russia/main/Vless-Reality-White-Lists-Rus-Mobile.txt": {
-      "consecutive_failures": 14,
+      "consecutive_failures": 15,
       "last_alive": 0,
-      "last_checked_at": "2026-10-31T06:25:42+00:00",
+      "last_checked_at": "2026-10-31T12:52:31+00:00",
       "last_raw": 150,
       "last_unique": 143,
-      "quarantined_until": "2026-10-31T08:25:42+00:00"
+      "quarantined_until": "2026-10-31T14:52:31+00:00"
     },
     "https://raw.githubusercontent.com/artembsk/vpn-configs-for-russia/main/WHITE-CIDR-RU-all.txt": {
-      "consecutive_failures": 14,
+      "consecutive_failures": 15,
       "last_alive": 0,
-      "last_checked_at": "2026-10-31T06:25:42+00:00",
+      "last_checked_at": "2026-10-31T12:52:31+00:00",
       "last_raw": 302,
       "last_unique": 295,
-      "quarantined_until": "2026-10-31T08:25:42+00:00"
+      "quarantined_until": "2026-10-31T14:52:31+00:00"
     },
     "https://raw.githubusercontent.com/wlunlocker/vpn-configs/main/whitelist_cidr1_ru.txt": {
-      "consecutive_failures": 14,
+      "consecutive_failures": 15,
       "last_alive": 0,
-      "last_checked_at": "2026-10-31T06:25:42+00:00",
+      "last_checked_at": "2026-10-31T12:52:31+00:00",
       "last_raw": 130,
       "last_unique": 114,
-      "quarantined_until": "2026-10-31T08:25:42+00:00"
+      "quarantined_until": "2026-10-31T14:52:31+00:00"
     },
     "https://raw.githubusercontent.com/wlunlocker/vpn-configs/main/whitelist_cidr2_ru.txt": {
-      "consecutive_failures": 14,
+      "consecutive_failures": 15,
       "last_alive": 0,
-      "last_checked_at": "2026-10-31T06:25:42+00:00",
+      "last_checked_at": "2026-10-31T12:52:31+00:00",
       "last_raw": 129,
       "last_unique": 122,
-      "quarantined_until": "2026-10-31T08:25:42+00:00"
+      "quarantined_until": "2026-10-31T14:52:31+00:00"
     },
     "https://raw.githubusercontent.com/wlunlocker/vpn-configs/main/whitelist_cidr3_eu.txt": {
-      "consecutive_failures": 14,
+      "consecutive_failures": 15,
       "last_alive": 0,
-      "last_checked_at": "2026-10-31T06:25:42+00:00",
+      "last_checked_at": "2026-10-31T12:52:31+00:00",
       "last_raw": 21,
       "last_unique": 21,
-      "quarantined_until": "2026-10-31T08:25:42+00:00"
+      "quarantined_until": "2026-10-31T14:52:31+00:00"
     },
     "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt": {
       "consecutive_failures": 0,
-      "last_alive": 7,
-      "last_checked_at": "2026-10-31T06:25:42+00:00",
-      "last_raw": 70,
-      "last_unique": 70,
+      "last_alive": 1,
+      "last_checked_at": "2026-10-31T12:52:31+00:00",
+      "last_raw": 57,
+      "last_unique": 57,
       "quarantined_until": null
     }
   },
-  "updated_at": "2026-10-31T06:25:42+00:00"
+  "updated_at": "2026-10-31T12:52:31+00:00"
 }

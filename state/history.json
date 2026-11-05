@@ -1096,5 +1096,24 @@
     "sources_active": 16,
     "sources_quarantined": 0,
     "timestamp": "2026-11-05T07:05:33+00:00"
+  },
+  {
+    "alive": 29,
+    "delta": -71,
+    "e2e_cached": 0,
+    "e2e_cached_failed": 0,
+    "e2e_failed": 117,
+    "e2e_verified": 48,
+    "held_back": 0,
+    "latency_p50": 333.4,
+    "protocols": {
+      "hysteria2": 3,
+      "shadowsocks": 9,
+      "vless": 17
+    },
+    "reachable": 186,
+    "sources_active": 16,
+    "sources_quarantined": 0,
+    "timestamp": "2026-11-05T15:40:19+00:00"
   }
 ]

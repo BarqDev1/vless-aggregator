@@ -1,3 +1,2 @@
 hysteria2://gf1:gfhysteria2024@5.129.235.85:443?sni=vk.com&pinSHA256=bf2f114d1b943f2fd423745d05dbbdea284e2f58b31aa428c45c7775ca847db3#%F0%9F%87%B3%F0%9F%87%B1
-hysteria2://H7mP2xY9kJ4nQ8wR5tF6vB3z@vpn-hk-004.fastervpn.world:443?sni=vpn-hk-004.fastervpn.world&pinSHA256=dac87f9a3bbf1ba4a62e475083587d41157086ca91ca9a8cf6f4427d04bf5aa5#%F0%9F%87%AD%F0%9F%87%B0%20Hong%20Kong%2C%20Fo%20Tan%20%7C%20%5BBL%5D
-hysteria2://8dOHZ13sx33R1%2FPQbhTK%2Fw%3D%3D@34.24.25.1:443?sni=bing.com&pinSHA256=a633013d45bbd455f6060b99dfebf575b34b4a0f1057e114ebc23bb036cc5592#%F0%9F%87%BA%F0%9F%87%B8%20United%20States%2C%20North%20Charleston%20%7C%20%5BBL%5D
+hysteria2://23c82941-70f4-4381-90db-bd28e9a902e9@steel7.hadsvpn.com:443?sni=steel7.hadsvpn.com&security=tls&pinSHA256=a2c8009693f1f253a54b57816dec9bee7a1c091ed95fd1892d629bcbeb879992#%F0%9F%8C%90%20Anycast-IP%20%7C%20%F0%9F%87%B7%F0%9F%87%BA%20%F0%9F%87%BA%F0%9F%87%B8%20%7C%20%5BBL%5D

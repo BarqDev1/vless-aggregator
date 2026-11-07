@@ -1,1 +1,1 @@
-hysteria2://146d567c-6335-4e63-a8aa-7ec068642440@177.202.75.56:443?sni=fi1.obxodvpn.us&fp=firefox&pinSHA256=cad2240270ca9bd0735a5adb0aa753d6868e172c2e722bef2a92a6cfbc4014b4#%F0%9F%87%BA%F0%9F%87%B8%20United%20States%2C%20Orem%20%7C%20%5BBL%5D
+hysteria2://146d567c-6335-4e63-a8aa-7ec068642440@177.202.75.56:443?sni=fi1.obxodvpn.us&fp=firefox&alpn=h3&pinSHA256=cad2240270ca9bd0735a5adb0aa753d6868e172c2e722bef2a92a6cfbc4014b4#%F0%9F%87%BA%F0%9F%87%B8%20United%20States%2C%20Orem%20%7C%20%5BBL%5D

@@ -1,1 +1,1 @@
-hysteria2://146d567c-6335-4e63-a8aa-7ec068642440@177.202.75.56:443?sni=fi1.obxodvpn.us&fp=firefox&alpn=h3&pinSHA256=cad2240270ca9bd0735a5adb0aa753d6868e172c2e722bef2a92a6cfbc4014b4#%F0%9F%87%BA%F0%9F%87%B8%20United%20States%2C%20Orem%20%7C%20%5BBL%5D
+hysteria2://p5xt6oLOA3qikIaj@fi-p1.h1cloud.net:25482?headerType=none&encryption=none&sni=www.bing.com&pinSHA256=4497916255a25d50d37e1b256f8206cdb82fef904921cc519dcceaa4ad0530fa#%F0%9F%87%A9%F0%9F%87%AA%20Germany%2C%20Frankfurt%20am%20Main%20%28Innenstadt%20I%29%20%7C%20%5BBL%5D

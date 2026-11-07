@@ -1,103 +1,103 @@
 {
-  "alive": 37,
+  "alive": 146,
   "alive_by_protocol": {
     "hysteria2": 1,
-    "shadowsocks": 25,
-    "trojan": 2,
-    "vless": 9
+    "shadowsocks": 117,
+    "trojan": 8,
+    "vless": 20
   },
   "baseline_reset": false,
-  "candidates_after_cap": 745,
+  "candidates_after_cap": 938,
   "capped_by_domain": 0,
-  "capped_by_endpoint": 551,
-  "capped_by_published_endpoint": 5,
-  "capped_by_subnet": 2,
+  "capped_by_endpoint": 532,
+  "capped_by_published_endpoint": 18,
+  "capped_by_subnet": 16,
   "checks": {
     "hysteria2": "xray_hysteria2_e2e",
     "shadowsocks": "xray_e2e",
     "trojan": "xray_e2e",
     "vless": "xray_e2e"
   },
-  "duration_sec": 149.3,
+  "duration_sec": 161.2,
   "e2e": {
     "cached": 0,
     "cached_failed": 0,
-    "duration_sec": 76.2,
+    "duration_sec": 83.3,
     "enabled": true,
-    "failed": 159,
-    "unsupported": 2,
-    "verified": 81
+    "failed": 154,
+    "unsupported": 3,
+    "verified": 244
   },
   "e2e_enabled": true,
   "hysteria2_pinned": 1,
   "latency_by_protocol": {
     "hysteria2": {
-      "max": 650.2,
-      "min": 650.2,
-      "p50": 650.2,
-      "p90": 650.2
+      "max": 1323.5,
+      "min": 1323.5,
+      "p50": 1323.5,
+      "p90": 1323.5
     },
     "shadowsocks": {
-      "max": 491.8,
-      "min": 36.7,
-      "p50": 258.5,
-      "p90": 414.9
+      "max": 4817.4,
+      "min": 14.5,
+      "p50": 300.1,
+      "p90": 481.3
     },
     "trojan": {
-      "max": 1986.1,
-      "min": 1540.8,
-      "p50": 1540.8,
-      "p90": 1986.1
+      "max": 1226.6,
+      "min": 1082.2,
+      "p50": 1172.8,
+      "p90": 1211.1
     },
     "vless": {
-      "max": 4053.8,
-      "min": 131.5,
-      "p50": 609.7,
-      "p90": 1953.5
+      "max": 2822.2,
+      "min": 155.2,
+      "p50": 896.8,
+      "p90": 2391.2
     }
   },
   "latency_ms": {
-    "max": 4053.8,
-    "min": 36.7,
-    "p50": 270.8,
-    "p90": 1393.5
+    "max": 4817.4,
+    "min": 14.5,
+    "p50": 313.9,
+    "p90": 1211.1
   },
-  "previous_total": 39,
-  "raw_links": 2714,
-  "reachable": 250,
-  "rejected_invalid": 80,
+  "previous_total": 37,
+  "raw_links": 2982,
+  "reachable": 409,
+  "rejected_invalid": 74,
   "source_stats": {
     "git+https://gitlab.com/igareck/vpn-configs-for-russia.git": {
       "active": true,
-      "alive": 8,
+      "alive": 23,
       "quarantined": false,
-      "raw": 1191,
-      "unique": 252,
-      "yield": 0.007
+      "raw": 1352,
+      "unique": 306,
+      "yield": 0.017
     },
     "https://raw.githubusercontent.com/0xRadikal/Free-v2ray-Configs/main/protocols/shadowsocks.txt": {
       "active": true,
-      "alive": 25,
+      "alive": 117,
       "quarantined": false,
-      "raw": 157,
-      "unique": 120,
-      "yield": 0.159
+      "raw": 299,
+      "unique": 263,
+      "yield": 0.391
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_FULL.txt": {
       "active": true,
-      "alive": 2,
+      "alive": 3,
       "quarantined": false,
       "raw": 6,
       "unique": 6,
-      "yield": 0.333
+      "yield": 0.5
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_LITE.txt": {
       "active": true,
-      "alive": 2,
+      "alive": 3,
       "quarantined": false,
       "raw": 6,
       "unique": 6,
-      "yield": 0.333
+      "yield": 0.5
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/26.1.txt": {
       "active": true,
@@ -109,35 +109,35 @@
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/30.txt": {
       "active": true,
-      "alive": 1,
+      "alive": 4,
       "quarantined": false,
-      "raw": 84,
-      "unique": 83,
-      "yield": 0.012
+      "raw": 73,
+      "unique": 72,
+      "yield": 0.055
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/31.txt": {
       "active": true,
-      "alive": 1,
+      "alive": 4,
       "quarantined": false,
-      "raw": 84,
-      "unique": 83,
-      "yield": 0.012
+      "raw": 73,
+      "unique": 72,
+      "yield": 0.055
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/32.1.txt": {
       "active": true,
-      "alive": 1,
+      "alive": 4,
       "quarantined": false,
-      "raw": 86,
-      "unique": 85,
-      "yield": 0.012
+      "raw": 73,
+      "unique": 72,
+      "yield": 0.055
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/33.1.txt": {
       "active": true,
-      "alive": 0,
+      "alive": 2,
       "quarantined": false,
       "raw": 9,
       "unique": 9,
-      "yield": 0.0
+      "yield": 0.222
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/34.txt": {
       "active": true,
@@ -189,11 +189,11 @@
     },
     "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt": {
       "active": true,
-      "alive": 1,
+      "alive": 3,
       "quarantined": false,
       "raw": 65,
       "unique": 65,
-      "yield": 0.015
+      "yield": 0.046
     }
   },
   "sources_active": 16,
@@ -202,33 +202,34 @@
   "sources_with_data": 16,
   "stability": {
     "bootstrap": 0,
-    "eligible": 44,
-    "held_back": 39,
+    "eligible": 180,
+    "held_back": 67,
     "pruned": 0,
-    "tracked": 3559,
-    "verified": 83
+    "tracked": 3618,
+    "verified": 247
   },
   "tls_inspection": {
     "failed": 8,
     "pinned": 0,
-    "valid": 95
+    "valid": 125
   },
   "top_countries": {
-    "🇨🇦": 1,
-    "🇪🇸": 1,
-    "🇫🇮": 1,
-    "🇬🇧": 1,
-    "🇯🇵": 7,
-    "🇰🇷": 1,
-    "🇲🇽": 1,
-    "🇳🇱": 3,
-    "🇷🇴": 1,
-    "🇷🇺": 2,
-    "🇸🇪": 1,
-    "🇹🇼": 1,
-    "🇺🇸": 13,
-    "🌐": 3
+    "🇨🇦": 9,
+    "🇨🇭": 6,
+    "🇩🇪": 15,
+    "🇪🇸": 2,
+    "🇫🇮": 7,
+    "🇫🇷": 6,
+    "🇬🇧": 6,
+    "🇮🇹": 5,
+    "🇯🇵": 8,
+    "🇰🇷": 3,
+    "🇳🇱": 8,
+    "🇸🇪": 2,
+    "🇸🇬": 7,
+    "🇺🇸": 51,
+    "🌐": 4
   },
-  "unique_valid": 1296,
-  "updated_at": "2026-11-07T18:58:46+00:00"
+  "unique_valid": 1470,
+  "updated_at": "2026-11-07T22:29:31+00:00"
 }

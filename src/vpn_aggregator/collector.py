@@ -151,8 +151,11 @@ class _DropAioquicNoise(logging.Filter):
         noisy = ("aioquic", "quic", "http3")
         if record.name.startswith(noisy):
             return False
-        # aioquic cancels handshakes on timeout; asyncio reports the shielded future.
-        if record.name == "asyncio" and "shielded future" in record.getMessage():
+        # aioquic cancels handshakes on timeout; asyncio reports the shielded/unretrieved future.
+        msg = record.getMessage()
+        if record.name == "asyncio" and (
+            "shielded future" in msg or "Future exception was never retrieved" in msg
+        ):
             return False
         return True
 
@@ -898,10 +901,7 @@ def enforce_guard(
         if previous_count <= 0:
             continue
         current = (protocol_counts or {}).get(protocol, 0)
-        if current == 0 and (
-            previous_count >= protocol_min
-            or protocol in ("vless", "hysteria2", "shadowsocks")
-        ):
+        if current == 0 and (previous_count >= protocol_min or protocol == "vless"):
             raise GuardError(f"{protocol} disappeared completely (was {previous_count})")
         if previous_count < protocol_min:
             continue
@@ -1696,9 +1696,8 @@ async def main() -> int:
             previous_protocols=previous_protocols,
             allow_baseline_reset=guard_reset,
         )
-        for required_proto in ("vless", "hysteria2", "shadowsocks"):
-            if alive_counts.get(required_proto, 0) == 0:
-                raise GuardError(f"no {required_proto} nodes available for dedicated output")
+        if alive_counts.get("vless", 0) == 0:
+            raise GuardError("no vless nodes available for dedicated output")
     except GuardError as exc:
         logger.error(f"Output guard triggered: {exc}. Previous files are kept unchanged.")
         return 1

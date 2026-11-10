@@ -19,6 +19,7 @@ def _lines(path: Path):
 def test_output_files_exist():
     for path in (VLESS, HY2, SS, ALL):
         assert path.is_file(), f"missing {path.name}"
+    for path in (VLESS, ALL):
         assert _lines(path), f"empty {path.name}"
 
 

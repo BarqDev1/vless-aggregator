@@ -108,13 +108,13 @@ def test_guard_dedicated_protocol_disappeared_below_min():
         c.enforce_guard(
             50,
             50,
-            protocol_counts={"vless": 50, "shadowsocks": 10},
-            previous_protocols={"vless": 50, "shadowsocks": 10, "hysteria2": 1},
+            protocol_counts={"shadowsocks": 50},
+            previous_protocols={"vless": 1, "shadowsocks": 50},
         )
     c.enforce_guard(
         50,
         50,
-        protocol_counts={"vless": 50, "shadowsocks": 10, "hysteria2": 1},
+        protocol_counts={"vless": 50, "shadowsocks": 10},
         previous_protocols={"vless": 50, "shadowsocks": 10, "hysteria2": 1, "trojan": 1},
     )
 

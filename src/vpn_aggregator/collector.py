@@ -895,11 +895,16 @@ def enforce_guard(
         )
 
     for protocol, previous_count in (previous_protocols or {}).items():
-        if previous_count < protocol_min:
+        if previous_count <= 0:
             continue
         current = (protocol_counts or {}).get(protocol, 0)
-        if current == 0:
+        if current == 0 and (
+            previous_count >= protocol_min
+            or protocol in ("vless", "hysteria2", "shadowsocks")
+        ):
             raise GuardError(f"{protocol} disappeared completely (was {previous_count})")
+        if previous_count < protocol_min:
+            continue
         if current < previous_count * (1 - protocol_max_drop):
             raise GuardError(
                 f"{protocol} dropped from {previous_count} to {current} "
@@ -1659,7 +1664,6 @@ async def main() -> int:
     history_entries = history_entries[-HISTORY_MAX_RUNS:]
     write_json_atomic(HISTORY_FILE, history_entries)
     write_json_atomic(NODE_HISTORY_FILE, node_history)
-    write_json_atomic(META_FILE, build_meta(alive_counts, len(alive_nodes), now))
 
     baseline_reset = BASELINE_RESET or (
         E2E_VERIFY and not previous_stats.get("e2e_enabled", False)
@@ -1692,6 +1696,9 @@ async def main() -> int:
             previous_protocols=previous_protocols,
             allow_baseline_reset=guard_reset,
         )
+        for required_proto in ("vless", "hysteria2", "shadowsocks"):
+            if alive_counts.get(required_proto, 0) == 0:
+                raise GuardError(f"no {required_proto} nodes available for dedicated output")
     except GuardError as exc:
         logger.error(f"Output guard triggered: {exc}. Previous files are kept unchanged.")
         return 1
@@ -1705,6 +1712,7 @@ async def main() -> int:
     write_atomic(HY2_OUTPUT, hy2_lines)
     write_atomic(SS_OUTPUT, ss_lines)
     write_atomic(ALL_OUTPUT, all_lines)
+    write_json_atomic(META_FILE, build_meta(alive_counts, len(alive_nodes), now))
     logger.info(f"Exported {len(vless_lines)} VLESS nodes -> {VLESS_OUTPUT}")
     logger.info(f"Exported {len(hy2_lines)} Hysteria2 nodes -> {HY2_OUTPUT}")
     logger.info(f"Exported {len(ss_lines)} Shadowsocks nodes -> {SS_OUTPUT}")

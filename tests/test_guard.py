@@ -103,6 +103,22 @@ def test_guard_protocol_disappeared():
         )
 
 
+def test_guard_dedicated_protocol_disappeared_below_min():
+    with pytest.raises(c.GuardError):
+        c.enforce_guard(
+            50,
+            50,
+            protocol_counts={"vless": 50, "shadowsocks": 10},
+            previous_protocols={"vless": 50, "shadowsocks": 10, "hysteria2": 1},
+        )
+    c.enforce_guard(
+        50,
+        50,
+        protocol_counts={"vless": 50, "shadowsocks": 10, "hysteria2": 1},
+        previous_protocols={"vless": 50, "shadowsocks": 10, "hysteria2": 1, "trojan": 1},
+    )
+
+
 def test_guard_protocol_large_drop():
     with pytest.raises(c.GuardError):
         c.enforce_guard(

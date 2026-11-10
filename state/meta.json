@@ -1,9 +1,10 @@
 {
   "counts": {
-    "shadowsocks": 159,
-    "total": 174,
+    "hysteria2": 1,
+    "shadowsocks": 26,
+    "total": 68,
     "trojan": 2,
-    "vless": 13
+    "vless": 39
   },
   "home_url": "https://github.com/BarqDev1/vless-aggregator",
   "profile_title": "BarqDev Multi-Protocol VPN",
@@ -16,5 +17,5 @@
     "vless": "https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/vless_universal.txt"
   },
   "support_url": "https://github.com/BarqDev1/vless-aggregator/issues",
-  "updated_at": "2026-11-09T21:10:52+00:00"
+  "updated_at": "2026-11-09T10:31:23+00:00"
 }

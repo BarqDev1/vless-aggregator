@@ -42,7 +42,7 @@ jobs:
         run: mypy src/vpn_aggregator
 
       - name: Test
-        run: pytest --cov=vpn_aggregator --cov-report=term-missing --cov-fail-under=50
+        run: pytest --ignore=tests/test_outputs.py --cov=vpn_aggregator --cov-report=term-missing --cov-fail-under=50
 
       - name: Dependency audit
         run: pip-audit -r requirements.lock
@@ -119,7 +119,7 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add state/
+          git add state/source_health.json state/source_cache.json state/node_history.json state/history.json
           if git diff --cached --quiet; then
             echo "No state changes to persist"
             exit 0

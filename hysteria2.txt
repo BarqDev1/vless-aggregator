@@ -1,1 +1,2 @@
-hysteria2://190edece-2750-454c-b766-0570fc32deca@89.125.214.221:19455?sni=mshvpn.online&fp=firefox&alpn=h3&pinSHA256=7d15bf591cfec242d6e8d0f01015c4fb9656fdee45008203455d08c8e987acc8#%F0%9F%8C%90%20Anycast-IP%20%7C%20%F0%9F%87%A9%F0%9F%87%AA%20%F0%9F%87%B3%F0%9F%87%B1%20%7C%20%5BBL%5D
+hysteria2://5646b5cf-9844-446f-80cf-ccdefb1ba23a@vieee.observation.today:443?sni=vie.observation.today&security=tls&pinSHA256=68cdf1d515d3ae5fafe84999ae4dedc5016de27d9b21aae246c642edc547b626#%F0%9F%87%AB%F0%9F%87%AE%20Finland%2C%20Helsinki%20%7C%20%5BBL%5D
+hysteria2://5646b5cf-9844-446f-80cf-ccdefb1ba23a@46.8.97.88:443?sni=vie.observation.today&alpn=h3&pinSHA256=68cdf1d515d3ae5fafe84999ae4dedc5016de27d9b21aae246c642edc547b626#%F0%9F%87%AB%F0%9F%87%AE%20Finland%2C%20Helsinki%20%7C%20%5BBL%5D

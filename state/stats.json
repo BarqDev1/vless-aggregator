@@ -1,96 +1,96 @@
 {
-  "alive": 61,
+  "alive": 68,
   "alive_by_protocol": {
     "hysteria2": 4,
-    "shadowsocks": 14,
-    "vless": 43
+    "shadowsocks": 7,
+    "vless": 57
   },
   "baseline_reset": false,
-  "candidates_after_cap": 770,
+  "candidates_after_cap": 725,
   "capped_by_domain": 0,
-  "capped_by_endpoint": 611,
-  "capped_by_published_endpoint": 48,
-  "capped_by_subnet": 6,
+  "capped_by_endpoint": 654,
+  "capped_by_published_endpoint": 94,
+  "capped_by_subnet": 12,
   "checks": {
     "hysteria2": "xray_hysteria2_e2e",
     "shadowsocks": "xray_e2e",
     "trojan": "xray_e2e",
     "vless": "xray_e2e"
   },
-  "duration_sec": 193.2,
+  "duration_sec": 136.8,
   "e2e": {
     "cached": 0,
     "cached_failed": 0,
-    "duration_sec": 125.0,
+    "duration_sec": 73.5,
     "enabled": true,
-    "failed": 215,
+    "failed": 131,
     "unsupported": 0,
-    "verified": 166
+    "verified": 233
   },
   "e2e_enabled": true,
   "hysteria2_pinned": 4,
   "latency_by_protocol": {
     "hysteria2": {
-      "max": 3470.2,
-      "min": 738.3,
-      "p50": 2487.2,
-      "p90": 3470.2
+      "max": 691.9,
+      "min": 325.3,
+      "p50": 610.9,
+      "p90": 691.9
     },
     "shadowsocks": {
-      "max": 3480.5,
-      "min": 85.8,
-      "p50": 379.0,
-      "p90": 1524.4
+      "max": 597.8,
+      "min": 124.9,
+      "p50": 370.4,
+      "p90": 560.0
     },
     "vless": {
-      "max": 4862.2,
-      "min": 79.9,
-      "p50": 1138.6,
-      "p90": 3423.1
+      "max": 2435.5,
+      "min": 84.1,
+      "p50": 482.4,
+      "p90": 751.3
     }
   },
   "latency_ms": {
-    "max": 4862.2,
-    "min": 79.9,
-    "p50": 961.8,
-    "p90": 3423.1
+    "max": 2435.5,
+    "min": 84.1,
+    "p50": 482.3,
+    "p90": 750.0
   },
-  "previous_total": 73,
-  "raw_links": 3884,
-  "reachable": 395,
-  "rejected_invalid": 136,
+  "previous_total": 61,
+  "raw_links": 3792,
+  "reachable": 375,
+  "rejected_invalid": 74,
   "source_stats": {
     "git+https://gitlab.com/igareck/vpn-configs-for-russia.git": {
       "active": true,
-      "alive": 38,
+      "alive": 41,
       "quarantined": false,
-      "raw": 2315,
-      "unique": 448,
-      "yield": 0.016
+      "raw": 2320,
+      "unique": 480,
+      "yield": 0.018
     },
     "https://raw.githubusercontent.com/0xRadikal/Free-v2ray-Configs/main/protocols/shadowsocks.txt": {
       "active": true,
-      "alive": 11,
+      "alive": 3,
       "quarantined": false,
-      "raw": 146,
-      "unique": 73,
-      "yield": 0.075
+      "raw": 12,
+      "unique": 7,
+      "yield": 0.25
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_FULL.txt": {
       "active": true,
       "alive": 8,
       "quarantined": false,
-      "raw": 18,
-      "unique": 18,
-      "yield": 0.444
+      "raw": 19,
+      "unique": 19,
+      "yield": 0.421
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_LITE.txt": {
       "active": true,
       "alive": 8,
       "quarantined": false,
-      "raw": 18,
-      "unique": 18,
-      "yield": 0.444
+      "raw": 19,
+      "unique": 19,
+      "yield": 0.421
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/26.1.txt": {
       "active": true,
@@ -182,11 +182,11 @@
     },
     "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt": {
       "active": true,
-      "alive": 4,
+      "alive": 16,
       "quarantined": false,
-      "raw": 28,
-      "unique": 27,
-      "yield": 0.143
+      "raw": 63,
+      "unique": 62,
+      "yield": 0.254
     }
   },
   "sources_active": 16,
@@ -195,34 +195,34 @@
   "sources_with_data": 16,
   "stability": {
     "bootstrap": 0,
-    "eligible": 115,
-    "held_back": 51,
+    "eligible": 174,
+    "held_back": 59,
     "pruned": 0,
-    "tracked": 4771,
-    "verified": 166
+    "tracked": 4816,
+    "verified": 233
   },
   "tls_inspection": {
-    "failed": 14,
+    "failed": 11,
     "pinned": 9,
-    "valid": 221
+    "valid": 226
   },
   "top_countries": {
-    "🇨🇦": 4,
+    "🇨🇦": 7,
     "🇨🇭": 1,
-    "🇩🇪": 19,
+    "🇩🇪": 21,
     "🇪🇸": 1,
-    "🇫🇷": 6,
-    "🇬🇧": 4,
-    "🇭🇰": 1,
-    "🇱🇰": 2,
-    "🇳🇱": 1,
-    "🇷🇺": 7,
-    "🇸🇬": 1,
-    "🇹🇷": 1,
-    "🇹🇼": 1,
-    "🇺🇸": 10,
-    "🌐": 1
+    "🇫🇷": 7,
+    "🇬🇷": 1,
+    "🇮🇳": 1,
+    "🇮🇹": 1,
+    "🇯🇵": 2,
+    "🇱🇻": 2,
+    "🇳🇱": 4,
+    "🇵🇱": 3,
+    "🇷🇺": 5,
+    "🇺🇸": 6,
+    "🌐": 3
   },
-  "unique_valid": 1381,
-  "updated_at": "2026-11-11T18:51:57+00:00"
+  "unique_valid": 1379,
+  "updated_at": "2026-11-12T01:10:50+00:00"
 }

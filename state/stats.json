@@ -1,89 +1,96 @@
 {
-  "alive": 88,
+  "alive": 183,
   "alive_by_protocol": {
-    "shadowsocks": 15,
-    "vless": 73
+    "shadowsocks": 145,
+    "trojan": 1,
+    "vless": 37
   },
   "baseline_reset": false,
-  "candidates_after_cap": 836,
+  "candidates_after_cap": 1377,
   "capped_by_domain": 0,
-  "capped_by_endpoint": 642,
-  "capped_by_published_endpoint": 93,
-  "capped_by_subnet": 11,
+  "capped_by_endpoint": 559,
+  "capped_by_published_endpoint": 45,
+  "capped_by_subnet": 73,
   "checks": {
     "hysteria2": "xray_hysteria2_e2e",
     "shadowsocks": "xray_e2e",
     "trojan": "xray_e2e",
     "vless": "xray_e2e"
   },
-  "duration_sec": 157.4,
+  "duration_sec": 289.1,
   "e2e": {
     "cached": 0,
     "cached_failed": 0,
-    "duration_sec": 89.8,
+    "duration_sec": 200.1,
     "enabled": true,
-    "failed": 186,
-    "unsupported": 0,
-    "verified": 236
+    "failed": 392,
+    "unsupported": 4,
+    "verified": 353
   },
   "e2e_enabled": true,
   "hysteria2_pinned": 0,
   "latency_by_protocol": {
     "shadowsocks": {
-      "max": 1331.5,
-      "min": 31.1,
-      "p50": 333.4,
-      "p90": 853.8
+      "max": 4596.3,
+      "min": 19.5,
+      "p50": 311.9,
+      "p90": 1066.3
+    },
+    "trojan": {
+      "max": 422.6,
+      "min": 422.6,
+      "p50": 422.6,
+      "p90": 422.6
     },
     "vless": {
-      "max": 4737.9,
-      "min": 73.9,
-      "p50": 423.4,
-      "p90": 2772.6
+      "max": 4718.5,
+      "min": 30.5,
+      "p50": 1083.7,
+      "p90": 3251.6
     }
   },
   "latency_ms": {
-    "max": 4737.9,
-    "min": 31.1,
-    "p50": 404.0,
-    "p90": 2345.3
+    "max": 4718.5,
+    "min": 19.5,
+    "p50": 334.0,
+    "p90": 2242.7
   },
-  "previous_total": 217,
-  "raw_links": 3755,
-  "reachable": 441,
-  "rejected_invalid": 58,
+  "previous_total": 88,
+  "raw_links": 4188,
+  "reachable": 770,
+  "rejected_invalid": 269,
   "source_stats": {
     "git+https://gitlab.com/igareck/vpn-configs-for-russia.git": {
       "active": true,
-      "alive": 42,
+      "alive": 16,
       "quarantined": false,
-      "raw": 2133,
-      "unique": 433,
-      "yield": 0.02
+      "raw": 1811,
+      "unique": 339,
+      "yield": 0.009
     },
     "https://raw.githubusercontent.com/0xRadikal/Free-v2ray-Configs/main/protocols/shadowsocks.txt": {
       "active": true,
-      "alive": 15,
+      "alive": 144,
       "quarantined": false,
-      "raw": 104,
-      "unique": 93,
-      "yield": 0.144
+      "raw": 865,
+      "unique": 640,
+      "yield": 0.166
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_FULL.txt": {
       "active": true,
-      "alive": 4,
+      "alive": 1,
       "quarantined": false,
       "raw": 20,
       "unique": 19,
-      "yield": 0.2
+      "yield": 0.05
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_LITE.txt": {
       "active": true,
-      "alive": 4,
+      "alive": 1,
       "quarantined": false,
       "raw": 20,
       "unique": 19,
-      "yield": 0.2
+      "yield": 0.05
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/26.1.txt": {
       "active": true,
@@ -175,11 +182,11 @@
     },
     "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt": {
       "active": true,
-      "alive": 27,
+      "alive": 22,
       "quarantined": false,
-      "raw": 119,
-      "unique": 119,
-      "yield": 0.227
+      "raw": 113,
+      "unique": 113,
+      "yield": 0.195
     }
   },
   "sources_active": 16,
@@ -188,34 +195,34 @@
   "sources_with_data": 16,
   "stability": {
     "bootstrap": 0,
-    "eligible": 192,
-    "held_back": 44,
+    "eligible": 301,
+    "held_back": 56,
     "pruned": 0,
-    "tracked": 5403,
-    "verified": 236
+    "tracked": 5455,
+    "verified": 357
   },
   "tls_inspection": {
-    "failed": 19,
-    "pinned": 7,
-    "valid": 210
+    "failed": 21,
+    "pinned": 12,
+    "valid": 142
   },
   "top_countries": {
-    "🇨🇦": 26,
-    "🇨🇭": 1,
-    "🇩🇪": 7,
-    "🇫🇷": 2,
-    "🇮🇹": 1,
-    "🇯🇵": 7,
-    "🇱🇰": 2,
-    "🇱🇻": 1,
-    "🇳🇱": 4,
-    "🇵🇱": 7,
-    "🇷🇴": 1,
-    "🇷🇺": 7,
-    "🇸🇪": 2,
+    "🇨🇦": 6,
+    "🇨🇭": 5,
+    "🇩🇪": 21,
+    "🇪🇸": 5,
+    "🇫🇷": 8,
+    "🇬🇧": 9,
+    "🇮🇹": 5,
+    "🇯🇵": 9,
+    "🇳🇱": 17,
+    "🇵🇱": 4,
+    "🇸🇪": 3,
+    "🇸🇬": 7,
     "🇹🇼": 2,
-    "🇺🇸": 14
+    "🇺🇸": 68,
+    "🇿🇦": 2
   },
-  "unique_valid": 1478,
-  "updated_at": "2026-11-14T11:05:13+00:00"
+  "unique_valid": 1936,
+  "updated_at": "2026-11-14T17:19:11+00:00"
 }

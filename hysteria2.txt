@@ -1,1 +1,1 @@
-hysteria2://fanvpn.net@107.149.232.92:443?sni=www.bing.com&alpn=%5Bh3%5D&upmbps=100&downmbps=200&pinSHA256=421f87402803be0765aaf35d24f9fedef3c6bdd33a94a955e0e4a11bdcfae7d9#%F0%9F%87%BA%F0%9F%87%B8%20United%20States%2C%20San%20Jose%20%7C%20%5BBL%5D
+

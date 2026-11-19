@@ -1,2 +1,2 @@
-hysteria2://H7mP2xY9kJ4nQ8wR5tF6vB3z@vpn-hk-004.fastervpn.world:443?sni=vpn-hk-004.fastervpn.world&pinSHA256=dac87f9a3bbf1ba4a62e475083587d41157086ca91ca9a8cf6f4427d04bf5aa5#%F0%9F%87%AD%F0%9F%87%B0%20Hong%20Kong%2C%20Fo%20Tan%20%7C%20%5BBL%5D
+hysteria2://H7mP2xY9kJ4nQ8wR5tF6vB3z@vpn-hk-004.fastervpn.world:443?security=tls&sni=vpn-hk-004.fastervpn.world&alpn=h3&pinSHA256=dac87f9a3bbf1ba4a62e475083587d41157086ca91ca9a8cf6f4427d04bf5aa5#%F0%9F%87%AD%F0%9F%87%B0%20Hong%20Kong%2C%20Fo%20Tan%20%7C%20%5BBL%5D
 hysteria2://oracle_hy2_pass_2026@129.225.181.46:8443?sni=bing.com&pinSHA256=533e23079c576f76b101b6caef6adcce66e7876a63fb49cb9904c55c066fea48#%F0%9F%87%AF%F0%9F%87%B5%20Japan%2C%20Minoh%20%28Saitoaokita%29%20%7C%20%5BBL%5D

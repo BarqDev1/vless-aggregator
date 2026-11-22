@@ -1,12 +1,12 @@
 {
-  "alive": 18,
+  "alive": 12,
   "alive_by_protocol": {
-    "vless": 18
+    "vless": 12
   },
   "baseline_reset": false,
-  "candidates_after_cap": 344,
+  "candidates_after_cap": 324,
   "capped_by_domain": 0,
-  "capped_by_endpoint": 449,
+  "capped_by_endpoint": 508,
   "capped_by_published_endpoint": 8,
   "capped_by_subnet": 0,
   "checks": {
@@ -14,69 +14,69 @@
     "trojan": "xray_e2e",
     "vless": "xray_e2e"
   },
-  "duration_sec": 113.5,
+  "duration_sec": 92.1,
   "e2e": {
     "cached": 0,
     "cached_failed": 0,
-    "duration_sec": 52.6,
+    "duration_sec": 37.7,
     "enabled": true,
-    "failed": 94,
+    "failed": 85,
     "unsupported": 4,
-    "verified": 34
+    "verified": 38
   },
   "e2e_enabled": true,
   "hysteria2_pinned": 0,
   "latency_by_protocol": {
     "vless": {
-      "max": 2060.6,
-      "min": 155.0,
-      "p50": 827.2,
-      "p90": 1696.9
+      "max": 1105.6,
+      "min": 126.2,
+      "p50": 624.7,
+      "p90": 811.9
     }
   },
   "latency_ms": {
-    "max": 2060.6,
-    "min": 155.0,
-    "p50": 827.2,
-    "p90": 1696.9
+    "max": 1105.6,
+    "min": 126.2,
+    "p50": 624.7,
+    "p90": 811.9
   },
   "only_ru_ips": true,
-  "previous_total": 44,
-  "raw_links": 3555,
-  "reachable": 144,
+  "previous_total": 18,
+  "raw_links": 3213,
+  "reachable": 134,
   "rejected_invalid": 54,
   "ru_ip_filter": {
-    "checked": 1440,
-    "kept": 793,
+    "checked": 1367,
+    "kept": 832,
     "non_public": 0,
-    "non_ru": 627,
-    "unique_hosts": 483,
+    "non_ru": 515,
+    "unique_hosts": 457,
     "unresolved": 20
   },
   "source_stats": {
     "git+https://gitlab.com/igareck/vpn-configs-for-russia.git": {
       "active": true,
-      "alive": 5,
+      "alive": 1,
       "quarantined": false,
-      "raw": 1949,
-      "unique": 119,
-      "yield": 0.003
+      "raw": 1605,
+      "unique": 152,
+      "yield": 0.001
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_FULL.txt": {
       "active": true,
-      "alive": 6,
+      "alive": 3,
       "quarantined": false,
-      "raw": 46,
-      "unique": 22,
-      "yield": 0.13
+      "raw": 42,
+      "unique": 21,
+      "yield": 0.071
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_LITE.txt": {
       "active": true,
-      "alive": 6,
+      "alive": 3,
       "quarantined": false,
-      "raw": 46,
-      "unique": 22,
-      "yield": 0.13
+      "raw": 42,
+      "unique": 21,
+      "yield": 0.071
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/26.1.txt": {
       "active": true,
@@ -168,11 +168,11 @@
     },
     "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt": {
       "active": true,
-      "alive": 7,
+      "alive": 6,
       "quarantined": false,
-      "raw": 155,
-      "unique": 75,
-      "yield": 0.045
+      "raw": 165,
+      "unique": 82,
+      "yield": 0.036
     }
   },
   "sources_active": 15,
@@ -181,26 +181,22 @@
   "sources_with_data": 15,
   "stability": {
     "bootstrap": 0,
-    "eligible": 26,
-    "held_back": 12,
+    "eligible": 20,
+    "held_back": 22,
     "pruned": 0,
-    "tracked": 7726,
-    "verified": 38
+    "tracked": 7746,
+    "verified": 42
   },
   "tls_inspection": {
-    "failed": 12,
-    "pinned": 11,
-    "valid": 52
+    "failed": 7,
+    "pinned": 12,
+    "valid": 62
   },
   "top_countries": {
-    "🇨🇭": 1,
-    "🇩🇪": 8,
-    "🇳🇱": 1,
-    "🇷🇺": 5,
-    "🇸🇨": 1,
-    "🇸🇪": 1,
-    "🇺🇸": 1
+    "🇩🇪": 7,
+    "🇷🇺": 4,
+    "🇸🇨": 1
   },
-  "unique_valid": 793,
-  "updated_at": "2026-11-22T16:31:35+00:00"
+  "unique_valid": 832,
+  "updated_at": "2026-11-22T21:58:02+00:00"
 }

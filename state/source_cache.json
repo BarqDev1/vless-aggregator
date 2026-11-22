@@ -2,7 +2,7 @@
   "sources": {
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_FULL.txt": {
       "etag": "W/\"bb1298e82cf17870f08603f8f175274a1ce8ae5d2e7b7dc9d565cfd3249da174\"",
-      "fetched_at": "2026-11-22T12:17:03+00:00",
+      "fetched_at": "2026-11-22T12:39:27+00:00",
       "last_modified": null,
       "links": [
         "vless://d81db550-4787-467e-b98a-579ee9d41999@84.23.52.104:9118?encryption=none&fp=random&mode=gun&pbk=4q4qXs-E4wzxXyV4TrOC-mEzx2S6h_LjQ_t_gc4wQEs&security=reality&serviceName=inetgrpc&sid=6ba85179e30d4fc2&sni=www.cloudflare.com&type=grpc#🇷🇺",
@@ -54,7 +54,7 @@
     },
     "https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_LITE.txt": {
       "etag": "W/\"441f3eede1ab128d971637fa757e5e8e1b64576d50d7a7a02555f037210201fe\"",
-      "fetched_at": "2026-11-22T12:17:03+00:00",
+      "fetched_at": "2026-11-22T12:39:27+00:00",
       "last_modified": null,
       "links": [
         "vless://d81db550-4787-467e-b98a-579ee9d41999@84.23.52.104:9118?encryption=none&fp=random&mode=gun&pbk=4q4qXs-E4wzxXyV4TrOC-mEzx2S6h_LjQ_t_gc4wQEs&security=reality&serviceName=inetgrpc&sid=6ba85179e30d4fc2&sni=www.cloudflare.com&type=grpc#🇷🇺",
@@ -272,7 +272,7 @@
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/30.txt": {
       "etag": "W/\"a36dfb7350f056a6eedc61c43eb36097fef82996315b29bf4c066fd6f7399f43\"",
-      "fetched_at": "2026-11-22T12:17:03+00:00",
+      "fetched_at": "2026-11-22T12:39:27+00:00",
       "last_modified": null,
       "links": [
         "vless://f219ffe2-bc36-495f-a83d-8f9ac4af05fd@185.173.179.218:443?alpn=h2&host=ru1.cdn-space.org&mode=auto&path=%2Fassets%2Fapi%2Fv3%2Fconnect%2F&security=tls&sni=ru1.cdn-space.org&type=xhttp&fp=qq#.%F0%96%A5%94%20%DD%81%20%CB%96%D6%B4%F0%9F%9B%B8%E0%BC%84%CB%96%C2%B0.%20%7C%20%5B%2ACIDR%5D",
@@ -421,7 +421,7 @@
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/31.txt": {
       "etag": "W/\"5aa5a90549e01e86f21352dc118d3d41dbbe02569f20e358f90508fd6d3f67fb\"",
-      "fetched_at": "2026-11-22T12:17:03+00:00",
+      "fetched_at": "2026-11-22T12:39:27+00:00",
       "last_modified": null,
       "links": [
         "vless://f219ffe2-bc36-495f-a83d-8f9ac4af05fd@185.173.179.218:443?alpn=h2&host=ru1.cdn-space.org&mode=auto&path=%2Fassets%2Fapi%2Fv3%2Fconnect%2F&security=tls&sni=ru1.cdn-space.org&type=xhttp&fp=qq#.%F0%96%A5%94%20%DD%81%20%CB%96%D6%B4%F0%9F%9B%B8%E0%BC%84%CB%96%C2%B0.%20%7C%20%5B%2ACIDR%5D",
@@ -570,7 +570,7 @@
     },
     "https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/32.1.txt": {
       "etag": "W/\"71bc8b160680eec96ecae8f4c6de97332972bc3277eb3be889779f1138481bd3\"",
-      "fetched_at": "2026-11-22T12:17:03+00:00",
+      "fetched_at": "2026-11-22T12:39:27+00:00",
       "last_modified": null,
       "links": [
         "vless://f219ffe2-bc36-495f-a83d-8f9ac4af05fd@185.173.179.218:443?alpn=h2&host=ru1.cdn-space.org&mode=auto&path=%2Fassets%2Fapi%2Fv3%2Fconnect%2F&security=tls&sni=ru1.cdn-space.org&type=xhttp&fp=qq#.%F0%96%A5%94%20%DD%81%20%CB%96%D6%B4%F0%9F%9B%B8%E0%BC%84%CB%96%C2%B0.%20%7C%20%5B%2ACIDR%5D",
@@ -1542,7 +1542,7 @@
     },
     "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt": {
       "etag": "W/\"881e9a0a8c2216ff75ad00eaa4fb6071f349be50e4e5acdac7d3357c85476499\"",
-      "fetched_at": "2026-11-22T12:17:03+00:00",
+      "fetched_at": "2026-11-22T12:39:27+00:00",
       "last_modified": null,
       "links": [
         "vless://37af0181-5598-4aad-a040-d926bcb65757@185.86.145.173:443?encryption=none&extra=null&fp=firefox&host=wholebeam.com&mode=auto&path=%2Fapi%2Fv1%2Fupload&security=tls&sni=wholebeam.com&type=xhttp#%F0%9F%87%B7%F0%9F%87%BA%20VK%20%E2%80%94%20%231",
@@ -1734,5 +1734,5 @@
       ]
     }
   },
-  "updated_at": "2026-11-22T12:17:03+00:00"
+  "updated_at": "2026-11-22T12:39:27+00:00"
 }

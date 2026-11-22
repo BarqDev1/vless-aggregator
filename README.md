@@ -49,6 +49,7 @@ https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/state/history.j
 ## ✨ Возможности
 
 - 🌐 **3 протокола:** `vless://`, `trojan://`, `hysteria2://` (`hy2://` → `hysteria2`).
+- 🇷🇺 **Фильтр реальных RU IP:** по умолчанию (`ONLY_RU_IPS=1`) домены резолвятся через DNS, и в подписку попадают только узлы с реальным публичным IP в России (GeoLite2 RU + RIPE NCC RU).
 - ✅ **Валидация до проверки:** UUID, Reality `pbk`, пароль Trojan, host/port.
 - ⚡ **Двухступенчатая проверка:**
   - TCP connect / QUIC v1 handshake;
@@ -335,6 +336,10 @@ add_header support-url "https://github.com/BarqDev1/vless-aggregator/issues";
 | `SOURCE_QUARANTINE_HOURS` | `2` | Длительность карантина |
 | `HISTORY_MAX_RUNS` | `1440` | Записей истории (30 дней) |
 | `PROFILE_UPDATE_INTERVAL` | `0.5` | Интервал обновления, часы |
+| `ONLY_RU_IPS` | `1` | Оставлять только узлы с реальным IP в РФ (GeoLite2 + RIPE NCC) |
+| `RU_GEOIP_CACHE_FILE` | `.cache/ru_geoip_cache.json` | Локальный кэш RU CIDR (24 ч) |
+| `DNS_CONCURRENCY` | `32` | Параллельных DNS-запросов |
+| `DNS_TIMEOUT` | `5.0` | Таймаут DNS-резолва, сек |
 | `BASELINE_RESET` | `0` | Пропустить drop-guard один раз |
 
 </details>

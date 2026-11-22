@@ -41,7 +41,7 @@ from typing import Dict, Iterable, List, Optional, Tuple
 import aiohttp
 from cryptography.hazmat.primitives import serialization
 
-from . import e2e
+from . import e2e, geoip
 
 try:  # Hysteria2 runs over QUIC; without aioquic we cannot check it honestly.
     from aioquic.asyncio.client import connect as quic_connect
@@ -124,6 +124,12 @@ E2E_CONCURRENCY = max(1, int(os.getenv("E2E_CONCURRENCY", "10")))
 E2E_TIMEOUT = float(os.getenv("E2E_TIMEOUT", "5.0"))
 XRAY_BIN = os.getenv("XRAY_BIN", "xray")
 BASELINE_RESET = os.getenv("BASELINE_RESET", "0").strip().lower() in {"1", "true", "yes", "on"}
+ONLY_RU_IPS = os.getenv("ONLY_RU_IPS", "1").strip().lower() in {"1", "true", "yes", "on"}
+RU_GEOIP_CACHE_FILE = os.getenv(
+    "RU_GEOIP_CACHE_FILE", _project_path(".cache", "ru_geoip_cache.json")
+)
+DNS_CONCURRENCY = max(1, int(os.getenv("DNS_CONCURRENCY", "32")))
+DNS_TIMEOUT = float(os.getenv("DNS_TIMEOUT", "5.0"))
 
 DEFAULT_HEADERS = {
     "User-Agent": (
@@ -1271,6 +1277,35 @@ async def main() -> int:
         logger.error("No valid nodes parsed; keeping previous files.")
         return 2
 
+    ru_filter_stats: Dict[str, int] = {}
+    if ONLY_RU_IPS:
+        try:
+            async with aiohttp.ClientSession(headers=DEFAULT_HEADERS) as geo_session:
+                ru_matcher = await geoip.load_ru_matcher(
+                    geo_session,
+                    RU_GEOIP_CACHE_FILE,
+                    now=now,
+                    timeout=FETCH_TIMEOUT,
+                )
+        except geoip.GeoIPRuntimeError as exc:
+            logger.error(f"RU IP filter enabled but GeoIP data unavailable: {exc}")
+            return 2
+
+        parsed_nodes, ru_filter_stats = await geoip.filter_ru_nodes(
+            parsed_nodes,
+            ru_matcher,
+            concurrency=DNS_CONCURRENCY,
+            timeout=DNS_TIMEOUT,
+        )
+        logger.info(
+            f"RU IP filter: kept {ru_filter_stats['kept']} / {ru_filter_stats['checked']} nodes "
+            f"(non_ru={ru_filter_stats['non_ru']}, unresolved={ru_filter_stats['unresolved']}, "
+            f"non_public={ru_filter_stats['non_public']}, hosts={ru_filter_stats['unique_hosts']})"
+        )
+        if not parsed_nodes:
+            logger.error("No nodes with a real Russian IP found; keeping previous files.")
+            return 2
+
     unique_by_source: Dict[str, int] = {url: 0 for url in source_urls}
     for node in parsed_nodes:
         for url in node["sources"]:
@@ -1556,8 +1591,10 @@ async def main() -> int:
     write_json_atomic(HISTORY_FILE, history_entries)
     write_json_atomic(NODE_HISTORY_FILE, node_history)
 
-    baseline_reset = BASELINE_RESET or (
-        E2E_VERIFY and not previous_stats.get("e2e_enabled", False)
+    baseline_reset = (
+        BASELINE_RESET
+        or (E2E_VERIFY and not previous_stats.get("e2e_enabled", False))
+        or (ONLY_RU_IPS and not previous_stats.get("only_ru_ips", False))
     )
     if BASELINE_RESET:
         logger.warning(
@@ -1565,7 +1602,8 @@ async def main() -> int:
         )
     elif baseline_reset:
         logger.info(
-            "First E2E run: total/protocol drop guard is skipped to establish a new baseline."
+            "Baseline mode changed (E2E/RU-IP filter): total/protocol drop guard is skipped "
+            "for this run to establish a new baseline."
         )
 
     verified_healthy = bool(previous_total) and len(verified_nodes) >= previous_total * (1 - MAX_DROP_RATIO)
@@ -1612,6 +1650,8 @@ async def main() -> int:
             "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "duration_sec": elapsed,
             "e2e_enabled": E2E_VERIFY,
+            "only_ru_ips": ONLY_RU_IPS,
+            "ru_ip_filter": ru_filter_stats,
             "sources_total": len(source_urls),
             "sources_active": len(active_urls),
             "sources_skipped_quarantined": len(skipped_urls),

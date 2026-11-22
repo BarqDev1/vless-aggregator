@@ -7,7 +7,6 @@ from vpn_aggregator import collector as c
 ROOT = Path(__file__).resolve().parents[1]
 VLESS = ROOT / "vless_universal.txt"
 HY2 = ROOT / "hysteria2.txt"
-SS = ROOT / "shadowsocks.txt"
 ALL = ROOT / "all_universal.txt"
 STATS = ROOT / "state" / "stats.json"
 
@@ -17,14 +16,14 @@ def _lines(path: Path):
 
 
 def test_output_files_exist():
-    for path in (VLESS, HY2, SS, ALL):
+    for path in (VLESS, HY2, ALL):
         assert path.is_file(), f"missing {path.name}"
     for path in (VLESS, ALL):
         assert _lines(path), f"empty {path.name}"
 
 
 def test_every_exported_line_is_valid():
-    for path in (VLESS, HY2, SS, ALL):
+    for path in (VLESS, HY2, ALL):
         for line in _lines(path):
             node = c.parse_vpn_link(line)
             assert node is not None, f"invalid link in {path.name}: {line[:100]}"
@@ -34,7 +33,7 @@ def test_every_exported_line_is_valid():
 
 
 def test_excluded_protocols_are_absent():
-    for path in (VLESS, HY2, SS, ALL):
+    for path in (VLESS, HY2, ALL):
         for line in _lines(path):
             assert not line.startswith(c.EXCLUDED_PREFIXES), f"excluded protocol in {path.name}"
 
@@ -42,7 +41,6 @@ def test_excluded_protocols_are_absent():
 def test_outputs_are_split_by_protocol():
     assert all(line.startswith("vless://") for line in _lines(VLESS))
     assert all(line.startswith(("hysteria2://", "hy2://")) for line in _lines(HY2))
-    assert all(line.startswith("ss://") for line in _lines(SS))
     assert all(line.startswith(c.SUPPORTED_PREFIXES) for line in _lines(ALL))
 
 
@@ -50,7 +48,6 @@ def test_all_output_is_a_superset_of_protocol_files():
     all_lines = set(_lines(ALL))
     assert set(_lines(VLESS)) <= all_lines
     assert set(_lines(HY2)) <= all_lines
-    assert set(_lines(SS)) <= all_lines
 
 
 def test_no_exact_duplicates_in_all_output():

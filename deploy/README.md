@@ -122,7 +122,6 @@ GitHub → Settings → General → Danger Zone → Change visibility → Make p
 https://vpn-aggregator-subscriptions.<sub>.workers.dev/<SUB_KEY>/all
 https://vpn-aggregator-subscriptions.<sub>.workers.dev/<SUB_KEY>/vless
 https://vpn-aggregator-subscriptions.<sub>.workers.dev/<SUB_KEY>/hy2
-https://vpn-aggregator-subscriptions.<sub>.workers.dev/<SUB_KEY>/ss
 ```
 
 В INCY: удалить старую подписку, добавить новый URL.

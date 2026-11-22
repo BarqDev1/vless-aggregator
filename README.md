@@ -1,31 +1,29 @@
 # ⚡ VPN Aggregator
 
-**VLESS · Trojan · Hysteria 2 · Shadowsocks** — автоматический сборщик, валидатор, дедупликатор и E2E-чекер
+**VLESS · Trojan · Hysteria 2** — автоматический сборщик, валидатор, дедупликатор и E2E-чекер
 VPN-конфигов из открытых источников.
 
 [![nodes](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBarqDev1%2Fvless-aggregator%2Fmain%2Fstate%2Fstats.json&query=%24.alive&label=nodes&color=brightgreen&style=flat-square&cacheSeconds=300)](https://github.com/BarqDev1/vless-aggregator)
 [![vless](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBarqDev1%2Fvless-aggregator%2Fmain%2Fstate%2Fstats.json&query=%24.alive_by_protocol.vless&label=vless&color=blue&style=flat-square&cacheSeconds=300)](https://github.com/BarqDev1/vless-aggregator)
-[![shadowsocks](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBarqDev1%2Fvless-aggregator%2Fmain%2Fstate%2Fstats.json&query=%24.alive_by_protocol.shadowsocks&label=ss&color=9b59b6&style=flat-square&cacheSeconds=300)](https://github.com/BarqDev1/vless-aggregator)
 [![hy2](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBarqDev1%2Fvless-aggregator%2Fmain%2Fstate%2Fstats.json&query=%24.alive_by_protocol.hysteria2&label=hy2&color=purple&style=flat-square&cacheSeconds=300)](https://github.com/BarqDev1/vless-aggregator)
 [![p50](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FBarqDev1%2Fvless-aggregator%2Fmain%2Fstate%2Fstats.json&query=%24.latency_ms.p50&label=p50%20ms&color=orange&style=flat-square&cacheSeconds=300)](https://github.com/BarqDev1/vless-aggregator)
 [![CI](https://github.com/BarqDev1/vless-aggregator/actions/workflows/update.yml/badge.svg?branch=main)](https://github.com/BarqDev1/vless-aggregator/actions/workflows/update.yml)
 
-> **VMess намеренно исключён.** Shadowsocks поддерживается, но в РФ часто блокируется TSPU.
+> **VMess и Shadowsocks намеренно исключены.**
 > Это агрегатор открытых конфигов, а не VPN-сервис: стабильность конкретной ноды не гарантируется.
 
 ---
 
 ## 🚀 Подписки
 
-Один клиент — **один файл**. Не добавляйте одновременно `all` и `vless`/`hysteria2`/`shadowsocks`:
+Один клиент — **один файл**. Не добавляйте одновременно `all` и `vless`/`hysteria2`:
 `all` уже содержит всё, иначе появятся визуальные дубликаты.
 
 | Файл | Протоколы | Для чего |
 |---|---|---|
-| **`all_universal.txt`** | VLESS + Trojan + Hy2 + SS | Один файл на всё |
+| **`all_universal.txt`** | VLESS + Trojan + Hy2 | Один файл на всё |
 | **`vless_universal.txt`** | только VLESS | Балансировщики Remnawave |
 | **`hysteria2.txt`** | только Hysteria 2 | UDP/QUIC-ноды |
-| **`shadowsocks.txt`** | только Shadowsocks | Там, где SS разрешён |
 
 ### Прямые ссылки
 
@@ -33,7 +31,6 @@ VPN-конфигов из открытых источников.
 https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/all_universal.txt
 https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/vless_universal.txt
 https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/hysteria2.txt
-https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/shadowsocks.txt
 ```
 
 ### Служебные файлы
@@ -51,8 +48,8 @@ https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/state/history.j
 
 ## ✨ Возможности
 
-- 🌐 **4 протокола:** `vless://`, `trojan://`, `hysteria2://` (`hy2://` → `hysteria2`), `ss://`.
-- ✅ **Валидация до проверки:** UUID, Reality `pbk`, пароль Trojan, host/port, метод SS.
+- 🌐 **3 протокола:** `vless://`, `trojan://`, `hysteria2://` (`hy2://` → `hysteria2`).
+- ✅ **Валидация до проверки:** UUID, Reality `pbk`, пароль Trojan, host/port.
 - ⚡ **Двухступенчатая проверка:**
   - TCP connect / QUIC v1 handshake;
   - реальный E2E-туннель через **Xray 26** с HTTP-запросом.
@@ -82,13 +79,13 @@ flowchart LR
     F --> G[Xray E2E]
     G --> H[Stability 2/3]
     H --> I[Guard]
-    I --> J[vless / hy2 / ss / all]
+    I --> J[vless / hy2 / all]
     G -. success cache 60m .-> G
     G -. failure cache 15m .-> G
 ```
 
 1. **Источники** читаются из `config/sources.txt` (HTTP, base64-подписки, Git-репозитории).
-2. **Валидация** отбрасывает битые ссылки, plaintext-VLESS, Reality без `pbk`, SS с плагинами.
+2. **Валидация** отбрасывает битые ссылки, plaintext-VLESS, Reality без `pbk`.
 3. **Дедупликация** идёт по полному конфигу: протокол, host, port, credentials, SNI, транспорт.
 4. **Префильтр:** TCP connect или QUIC handshake.
 5. **TLS-инспекция:** CA-valid или self-signed (для `pcs`).
@@ -105,9 +102,8 @@ flowchart LR
 |---|---|---|
 | VLESS/Trojan | TCP connect | Порт принимает соединения |
 | Hysteria2 | QUIC v1 + ALPN `h3` | UDP/QUIC-сервер отвечает |
-| Shadowsocks | TCP connect | Порт принимает соединения |
 | TLS | certificate inspection | CA-valid или self-signed + `pcs` |
-| **E2E** | Xray-туннель + HTTP | Пароль/UUID/Reality/SS работают, есть выход в интернет |
+| **E2E** | Xray-туннель + HTTP | Пароль/UUID/Reality работают, есть выход в интернет |
 
 **Чего E2E не проверяет:** скорость, лимиты трафика, срок жизни ключа, блокировки конкретных сервисов.
 Это снимок работоспособности на момент прогона, а не SLA.
@@ -146,8 +142,6 @@ flowchart LR
 | Дубликаты в INCY | один файл на клиент; `all` уже содержит `vless` |
 | Старые ошибки после обновления | удалить подписку и добавить заново |
 
-Shadowsocks — отдельный файл, потому что в РФ он часто блокируется TSPU.
-
 ---
 
 ## 🔒 Приватный репозиторий
@@ -165,7 +159,6 @@ Shadowsocks — отдельный файл, потому что в РФ он ч
 https://sub.example.com/<SUB_KEY>/all
 https://sub.example.com/<SUB_KEY>/vless
 https://sub.example.com/<SUB_KEY>/hy2
-https://sub.example.com/<SUB_KEY>/ss
 ```
 
 ⚠️ Приватный репозиторий расходует минуты GitHub Actions. При cron раз в 30 минут
@@ -202,7 +195,6 @@ https://sub.example.com/<SUB_KEY>/ss
 │   └── dependabot.yml
 ├── vless_universal.txt          # публичные подписки — намеренно в корне,
 ├── hysteria2.txt                # чтобы старые raw-URL не ломались
-├── shadowsocks.txt
 └── all_universal.txt
 ```
 
@@ -260,7 +252,7 @@ https://domain.com/sub/token
 - обычный текст;
 - base64-подписки;
 - Git-репозитории с `.txt/.md/.yaml`;
-- ссылки `vless://`, `trojan://`, `hysteria2://`, `hy2://`, `ss://`.
+- ссылки `vless://`, `trojan://`, `hysteria2://`, `hy2://`.
 
 Строки, начинающиеся с `#`, игнорируются. После изменения GitHub Actions запустит сборку.
 
@@ -308,7 +300,6 @@ add_header support-url "https://github.com/BarqDev1/vless-aggregator/issues";
 | `SOURCES_FILE` | `config/sources.txt` | Источники |
 | `VLESS_OUTPUT` | `vless_universal.txt` | Выход VLESS |
 | `HY2_OUTPUT` | `hysteria2.txt` | Выход Hysteria2 |
-| `SS_OUTPUT` | `shadowsocks.txt` | Выход Shadowsocks |
 | `ALL_OUTPUT` | `all_universal.txt` | Выход всех протоколов |
 | `STATS_OUTPUT` | `state/stats.json` | Статистика |
 | `META_FILE` | `state/meta.json` | Метаданные |
@@ -388,7 +379,6 @@ add_header support-url "https://github.com/BarqDev1/vless-aggregator/issues";
 | Много одинаковых нод | добавлены и `all`, и `vless`; оставьте один файл |
 | Ноды пропали | 1 на `host:port`, stability 2/3, E2E, `/24` cap |
 | Обновления не идут | GitHub schedule пропускает запуски; нужен внешний триггер |
-| Shadowsocks не работает в РФ | TSPU блокирует SS; используйте VLESS/Hy2 |
 | INCY показывает старый список | удалить подписку, добавить URL с `?v=...` |
 
 ---
@@ -398,7 +388,6 @@ add_header support-url "https://github.com/BarqDev1/vless-aggregator/issues";
 - Это **не VPN-сервис**, а агрегатор открытых конфигов.
 - Ноды бесплатные: могут умереть, сменить пароль или быть заблокированы.
 - E2E проверяет один HTTP-запрос, не скорость и не лимиты.
-- Shadowsocks в РФ часто недоступен.
 - Не добавляйте публичные ключи/UUID в Issues — они и так в подписке, но лучше не плодить копии.
 
 ---

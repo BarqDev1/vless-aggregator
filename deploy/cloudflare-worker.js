@@ -2,7 +2,6 @@ const FILES = {
   all: { path: "all_universal.txt", type: "text/plain; charset=utf-8" },
   vless: { path: "vless_universal.txt", type: "text/plain; charset=utf-8" },
   hy2: { path: "hysteria2.txt", type: "text/plain; charset=utf-8" },
-  ss: { path: "shadowsocks.txt", type: "text/plain; charset=utf-8" },
   stats: { path: "state/stats.json", type: "application/json; charset=utf-8" },
   meta: { path: "state/meta.json", type: "application/json; charset=utf-8" },
   history: { path: "state/history.json", type: "application/json; charset=utf-8" },

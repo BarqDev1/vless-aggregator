@@ -102,8 +102,6 @@ def _xray_stream(node: dict) -> Optional[dict]:
         }
     elif network == "grpc":
         service_name = _q(node, "serviceName") or _q(node, "path").lstrip("/")
-        if not service_name:
-            return None
         stream["grpcSettings"] = {"serviceName": service_name}
     elif network == "xhttp":
         xhttp: Dict[str, object] = {

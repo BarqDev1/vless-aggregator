@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import urllib.parse
 
@@ -206,3 +207,49 @@ def test_clean_git_url():
         pass
     else:
         raise AssertionError("non-http git URL must be rejected")
+
+
+def test_fetch_once_reads_all_chunks_and_truncates_at_limit(monkeypatch):
+    class _FakeContent:
+        def __init__(self, chunks):
+            self._chunks = chunks
+
+        async def iter_chunked(self, size):
+            for chunk in self._chunks:
+                yield chunk
+
+    class _FakeResp:
+        def __init__(self, chunks):
+            self.status = 200
+            self.headers = {"ETag": '"1"'}
+            self.charset = "utf-8"
+            self.content = _FakeContent(chunks)
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+    class _FakeSession:
+        def __init__(self, chunks):
+            self._chunks = chunks
+
+        def get(self, url, headers=None, timeout=None):
+            return _FakeResp(self._chunks)
+
+    ok, body, status, headers = asyncio.run(
+        c._fetch_once(_FakeSession([b"vless://part1\n", b"vless://part2\n", b"vless://part3\n"]), "https://x")
+    )
+    assert ok is True
+    assert status == 200
+    assert headers["ETag"] == '"1"'
+    assert body == "vless://part1\nvless://part2\nvless://part3\n"
+
+    monkeypatch.setattr(c, "MAX_SOURCE_BYTES", 20)
+    ok, body, status, _ = asyncio.run(
+        c._fetch_once(_FakeSession([b"vless://part1\n", b"vless://part2\n"]), "https://x")
+    )
+    assert ok is True
+    assert status == 200
+    assert body == "vless://part1\nvless:"

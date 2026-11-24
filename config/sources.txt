@@ -4,29 +4,39 @@
 # - Raw ссылки (https://raw.githubusercontent.com/...)
 # - URL подписок (текст или base64)
 
-# 1. igareck — Прямой репозиторий с GitLab (оригинал разработчика, самые свежие обновления без 429 лимитов):
+# 1. igareck — Прямой репозиторий с GitLab (оригинал разработчика, свежие обновления):
 git+https://gitlab.com/igareck/vpn-configs-for-russia.git
 
 # 2. zieng2 — Проверенные белые списки (VK, Кинопоиск, Госуслуги):
 https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt
 
-# 3. artembsk — Мультипротокольные списки (VLESS + Hysteria 2 + Trojan):
-https://raw.githubusercontent.com/artembsk/vpn-configs-for-russia/main/WHITE-CIDR-RU-all.txt
-https://raw.githubusercontent.com/artembsk/vpn-configs-for-russia/main/Vless-Reality-White-Lists-Rus-Mobile.txt
+# 3. aviamastersgh — Ежедневно обновляемые RU и проверенные конфигурации:
+https://raw.githubusercontent.com/aviamastersgh/vpn-free-russia/main/ru_configs.txt
+https://raw.githubusercontent.com/aviamastersgh/vpn-free-russia/main/verified_configs.txt
 
-# 4. FLAT447 — V2Ray / VLESS белые списки (полный и облегчённый):
+# 4. flaafix — Почасовое обновление white-list узлов (AetrisVPN):
+https://raw.githubusercontent.com/flaafix/AetrisVPN-white-list-lite/main/AetrisVPN.txt
+
+# 5. nikita29a — Крупные зеркала активных конфигураций РФ:
+https://raw.githubusercontent.com/nikita29a/FreeProxyList/main/mirror/1.txt
+https://raw.githubusercontent.com/nikita29a/FreeProxyList/main/mirror/10.txt
+
+# 6. hussaroff — Автообновляемые проверенные LTE white-list конфигурации:
+https://raw.githubusercontent.com/hussaroff/lte-universal-checked/main/whitelist.txt
+
+# 7. Maskkost93 — Белые списки и RU-конфигурации (kizyak-vpn):
+https://raw.githubusercontent.com/Maskkost93/kizyak-vpn-4.0/main/kizyakbeta6.txt
+https://raw.githubusercontent.com/Maskkost93/kizyak-vpn-4.0/main/kizyakbeta7.txt
+
+# 8. FLAT447 — VLESS белые списки:
 https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_FULL.txt
-https://raw.githubusercontent.com/FLAT447/v2ray-lists/refs/heads/main/WHITE_LITE.txt
 
-# 5. Hidashimora — Подборки анти-РКН конфигураций (CIDR Mobile, VK/Ya/CDN, SNI обход):
+# 9. Hidashimora — Подборки анти-РКН конфигураций (сводный vpn.txt и CIDR-списки):
+https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/vpn.txt
 https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/26.1.txt
 https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/30.txt
-https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/31.txt
 https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/32.1.txt
-https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/33.1.txt
-https://raw.githubusercontent.com/Hidashimora/free-vpn-anti-rkn/main/configs/34.txt
 
-# 6. wlunlocker — Антиглушилки CIDR белые списки (Россия и Европа):
+# 10. wlunlocker — Белые списки CIDR RU:
 https://raw.githubusercontent.com/wlunlocker/vpn-configs/main/whitelist_cidr1_ru.txt
 https://raw.githubusercontent.com/wlunlocker/vpn-configs/main/whitelist_cidr2_ru.txt
-https://raw.githubusercontent.com/wlunlocker/vpn-configs/main/whitelist_cidr3_eu.txt

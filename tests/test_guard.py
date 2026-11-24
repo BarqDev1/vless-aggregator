@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 
@@ -221,3 +222,37 @@ def test_latency_summary():
     assert summary["min"] == 100.0
     assert summary["max"] == 300.0
     assert summary["p50"] in (200.0, 300.0)
+
+
+def test_probe_nodes_dedup_probes_each_endpoint_once(monkeypatch):
+    calls = []
+
+    async def fake_verify(node, semaphore):
+        calls.append((node["transport"], node["host"], node["port"]))
+        if node["host"] == "dead.example":
+            return None
+        if node["transport"] == "udp":
+            node["tls_mode"] = "pinned"
+            node["tls_cert_sha256"] = "cafebabe"
+        node["latency_ms"] = 42.0
+        return 42.0
+
+    monkeypatch.setattr(c, "verify_node", fake_verify)
+    nodes = [
+        {"transport": "tcp", "host": "1.2.3.4", "port": 443, "sni": "a.com"},
+        {"transport": "tcp", "host": "1.2.3.4", "port": 443, "sni": "b.com"},
+        {"transport": "udp", "host": "hy2.example", "port": 443, "sni": "sni.example"},
+        {"transport": "udp", "host": "hy2.example", "port": 443, "sni": "sni.example"},
+        {"transport": "tcp", "host": "dead.example", "port": 443, "sni": ""},
+    ]
+
+    async def _run():
+        return await c.probe_nodes_dedup(nodes, asyncio.Semaphore(10))
+
+    reachable, unreachable = asyncio.run(_run())
+    assert len(calls) == 3
+    assert len(reachable) == 4
+    assert all(n["latency_ms"] == 42.0 for n in reachable)
+    assert reachable[2]["tls_cert_sha256"] == "cafebabe"
+    assert reachable[3]["tls_cert_sha256"] == "cafebabe"
+    assert [n["host"] for n in unreachable] == ["dead.example"]

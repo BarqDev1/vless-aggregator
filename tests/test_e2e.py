@@ -79,6 +79,13 @@ def test_xray_hysteria2_pinned_config():
     assert "insecure" not in outbound["streamSettings"]["tlsSettings"]
 
 
+def test_xray_grpc_empty_servicename_config():
+    node = _vless("type=grpc&mode=gun")
+    config = e2e.build_xray_config(node, 1080)
+    assert config is not None
+    assert config["outbounds"][0]["streamSettings"]["grpcSettings"] == {"serviceName": ""}
+
+
 def test_unsupported_transport_returns_none():
     node = _vless("type=quic")
     assert e2e.build_xray_config(node, 1080) is None

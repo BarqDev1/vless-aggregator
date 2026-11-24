@@ -57,8 +57,8 @@ https://raw.githubusercontent.com/BarqDev1/vless-aggregator/main/state/history.j
 - 🔐 **Совместимость с Xray 26 / INCY:** удалены `insecure`/`allowInsecure`;
   самоподписанные TLS-ноды пинятся через `pcs`, Hy2 — через `pinSHA256`;
   plaintext-VLESS не публикуется.
-- 🧹 **Чистая подписка:** ровно **1 нода на `протокол + host:port`**; копии UUID/SNI схлопываются.
-- 🧱 **Стабильность 2 из 3:** новая нода публикуется после 2 успехов из последних 3.
+- 🧹 **Чистая подписка:** не больше **2 ключей на `протокол + host:port`** (`PUBLISH_PER_ENDPOINT=2`); лишние копии UUID/SNI схлопываются.
+- 🧱 **Стабильность:** при `E2E_VERIFY=1` проверенная через Xray нода публикуется сразу (`NODE_MIN_RECENT_SUCCESS=1`); без E2E требуется 2 успеха из 3.
 - 🩺 **Атрибуция источников:** `raw / unique / alive / yield` по каждому источнику.
 - 🏥 **Карантин источников:** 5 прогонов с нулём → пауза 2 часа (не удаление).
 - ⏱️ **Быстрые прогоны:** E2E-кеш 60 минут, кеш падений 15 минут, ETag/304 для источников.
@@ -121,10 +121,10 @@ flowchart LR
 
 | Причина | Эффект |
 |---|---|
-| 1 нода на `host:port` | копии UUID/SNI не публикуются |
-| `MAX_PER_SUBNET=3` | не больше 3 нод на `/24` |
+| `1–2` ноды на `host:port` (`PUBLISH_PER_ENDPOINT=2`) | лишние копии UUID/SNI не публикуются |
+| `MAX_PER_SUBNET=6` | не больше 6 нод на `/24` или `/48` |
 | `MAX_PER_DOMAIN=10` | не больше 10 нод на домен |
-| Stability 2/3 | новые ноды ждут второй успех |
+| Stability | при `E2E_VERIFY=1` публикуется сразу (`1`), без E2E ждёт `2/3` |
 | E2E | мёртвые/несовместимые ноды не публикуются |
 | Источники | списки обновляются, ноды умирают |
 
@@ -316,17 +316,17 @@ add_header support-url "https://github.com/BarqDev1/vless-aggregator/issues";
 | `FETCH_TIMEOUT` | `20.0` | Таймаут источника, сек |
 | `FETCH_ATTEMPTS` | `3` | Попыток загрузки |
 | `E2E_VERIFY` | `0` | Включить E2E (`1` в CI) |
-| `E2E_CONCURRENCY` | `10` | Параллельных Xray-клиентов |
-| `E2E_TIMEOUT` | `5.0` | Таймаут E2E-запроса, сек |
+| `E2E_CONCURRENCY` | `16` | Параллельных Xray-клиентов |
+| `E2E_TIMEOUT` | `8.0` | Таймаут E2E-запроса, сек |
 | `E2E_CACHE_MINUTES` | `60` | Кеш успешного E2E |
 | `E2E_FAILURE_CACHE_MINUTES` | `15` | Кеш неудачного E2E |
 | `XRAY_BIN` | `xray` | Путь к Xray |
-| `NODE_MIN_RECENT_SUCCESS` | `2` | Успехов для публикации |
+| `NODE_MIN_RECENT_SUCCESS` | `1` (`E2E=1`) / `2` | Успехов для публикации |
 | `NODE_RECENT_WINDOW` | `3` | Окно стабильности |
 | `NODE_HISTORY_TTL_DAYS` | `30` | Хранение истории нод |
-| `MAX_PER_ENDPOINT` | `3` | Вариантов на `host:port` для E2E |
-| `PUBLISH_PER_ENDPOINT` | `1` | Публикуется на `host:port` |
-| `MAX_PER_SUBNET` | `3` | Нод на `/24` или `/48` |
+| `MAX_PER_ENDPOINT` | `6` | Вариантов на `host:port` для E2E |
+| `PUBLISH_PER_ENDPOINT` | `2` | Публикуется на `host:port` |
+| `MAX_PER_SUBNET` | `6` | Нод на `/24` или `/48` |
 | `MAX_PER_DOMAIN` | `10` | Нод на домен |
 | `MIN_ALIVE` | `10` | Минимум живых нод |
 | `MAX_DROP_RATIO` | `0.5` | Guard падения |

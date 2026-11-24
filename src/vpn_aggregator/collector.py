@@ -98,13 +98,16 @@ MAX_GIT_FILES = int(os.getenv("MAX_GIT_FILES", "2000"))
 
 MIN_ALIVE = int(os.getenv("MIN_ALIVE", "10"))
 MAX_DROP_RATIO = float(os.getenv("MAX_DROP_RATIO", "0.5"))
-MAX_PER_ENDPOINT = max(1, int(os.getenv("MAX_PER_ENDPOINT", "3")))
-PUBLISH_PER_ENDPOINT = max(1, int(os.getenv("PUBLISH_PER_ENDPOINT", "1")))
-MAX_PER_SUBNET = max(1, int(os.getenv("MAX_PER_SUBNET", "3")))
+MAX_PER_ENDPOINT = max(1, int(os.getenv("MAX_PER_ENDPOINT", "6")))
+PUBLISH_PER_ENDPOINT = max(1, int(os.getenv("PUBLISH_PER_ENDPOINT", "2")))
+MAX_PER_SUBNET = max(1, int(os.getenv("MAX_PER_SUBNET", "6")))
 MAX_PER_DOMAIN = max(1, int(os.getenv("MAX_PER_DOMAIN", "10")))
 MAX_REMARK_LEN = int(os.getenv("MAX_REMARK_LEN", "120"))
 
-NODE_MIN_RECENT_SUCCESS = max(1, int(os.getenv("NODE_MIN_RECENT_SUCCESS", "2")))
+E2E_VERIFY = os.getenv("E2E_VERIFY", "0").strip().lower() in {"1", "true", "yes", "on"}
+NODE_MIN_RECENT_SUCCESS = max(
+    1, int(os.getenv("NODE_MIN_RECENT_SUCCESS", "1" if E2E_VERIFY else "2"))
+)
 NODE_RECENT_WINDOW = max(1, int(os.getenv("NODE_RECENT_WINDOW", "3")))
 NODE_HISTORY_TTL_DAYS = max(1, int(os.getenv("NODE_HISTORY_TTL_DAYS", "30")))
 MAX_NODE_HISTORY = max(100, int(os.getenv("MAX_NODE_HISTORY", "10000")))
@@ -119,9 +122,8 @@ PROTOCOL_MAX_DROP = float(os.getenv("PROTOCOL_MAX_DROP", "0.7"))
 SOURCE_FAILURE_THRESHOLD = max(1, int(os.getenv("SOURCE_FAILURE_THRESHOLD", "5")))
 SOURCE_QUARANTINE_HOURS = float(os.getenv("SOURCE_QUARANTINE_HOURS", "2"))
 
-E2E_VERIFY = os.getenv("E2E_VERIFY", "0").strip().lower() in {"1", "true", "yes", "on"}
-E2E_CONCURRENCY = max(1, int(os.getenv("E2E_CONCURRENCY", "10")))
-E2E_TIMEOUT = float(os.getenv("E2E_TIMEOUT", "5.0"))
+E2E_CONCURRENCY = max(1, int(os.getenv("E2E_CONCURRENCY", "16")))
+E2E_TIMEOUT = float(os.getenv("E2E_TIMEOUT", "8.0"))
 XRAY_BIN = os.getenv("XRAY_BIN", "xray")
 BASELINE_RESET = os.getenv("BASELINE_RESET", "0").strip().lower() in {"1", "true", "yes", "on"}
 ONLY_RU_IPS = os.getenv("ONLY_RU_IPS", "1").strip().lower() in {"1", "true", "yes", "on"}
@@ -510,6 +512,34 @@ async def verify_node(node: dict, semaphore: asyncio.Semaphore) -> Optional[floa
         return None
 
 
+async def probe_nodes_dedup(
+    nodes: List[dict], semaphore: asyncio.Semaphore
+) -> Tuple[List[dict], List[dict]]:
+    """Probes each unique (transport, host, port, quic_sni) once and fans out results."""
+    groups: Dict[Tuple[str, str, int, str], List[dict]] = {}
+    for node in nodes:
+        sni_key = (node["sni"] or node["host"]).lower() if node["transport"] == "udp" else ""
+        key = (node["transport"], node["host"].lower(), node["port"], sni_key)
+        groups.setdefault(key, []).append(node)
+
+    reps = [group[0] for group in groups.values()]
+    latencies = await asyncio.gather(*[verify_node(rep, semaphore) for rep in reps])
+
+    reachable_nodes: List[dict] = []
+    unreachable_nodes: List[dict] = []
+    for group, rep, latency in zip(groups.values(), reps, latencies, strict=True):
+        if latency is None:
+            unreachable_nodes.extend(group)
+            continue
+        for node in group:
+            node["latency_ms"] = latency
+            if rep.get("tls_cert_sha256") and not node.get("tls_cert_sha256"):
+                node["tls_mode"] = rep.get("tls_mode")
+                node["tls_cert_sha256"] = rep["tls_cert_sha256"]
+            reachable_nodes.append(node)
+    return reachable_nodes, unreachable_nodes
+
+
 def _clean_git_url(repo_url: str) -> str:
     url = repo_url[4:] if repo_url.startswith("git+") else repo_url
     url = url.strip()
@@ -645,10 +675,20 @@ async def _fetch_once(
                 retryable = resp.status == 429 or resp.status >= 500
                 logger.warning(f"Failed to fetch {url}: HTTP {resp.status}")
                 return retryable, "", resp.status, {}
-            raw = await resp.content.read(MAX_SOURCE_BYTES + 1)
-            if len(raw) > MAX_SOURCE_BYTES:
+            chunks: List[bytes] = []
+            total = 0
+            truncated = False
+            async for chunk in resp.content.iter_chunked(65536):
+                remaining = MAX_SOURCE_BYTES - total
+                if len(chunk) > remaining:
+                    chunks.append(chunk[:remaining])
+                    truncated = True
+                    break
+                chunks.append(chunk)
+                total += len(chunk)
+            if truncated:
                 logger.warning(f"Source {url} exceeds {MAX_SOURCE_BYTES} bytes; truncating")
-                raw = raw[:MAX_SOURCE_BYTES]
+            raw = b"".join(chunks)
             return True, raw.decode(resp.charset or "utf-8", errors="ignore"), 200, dict(resp.headers)
     except Exception as exc:
         logger.warning(f"Error fetching {url}: {type(exc).__name__}: {exc}")
@@ -1311,37 +1351,38 @@ async def main() -> int:
         for url in node["sources"]:
             unique_by_source[url] = unique_by_source.get(url, 0) + 1
 
-    candidates = cap_per_endpoint(parsed_nodes)
+    semaphore = asyncio.Semaphore(MAX_CONCURRENT_PINGS)
+    logger.info(
+        f"Checking reachability for {len(parsed_nodes)} nodes (workers={MAX_CONCURRENT_PINGS})..."
+    )
+    reachable_all, unreachable_nodes = await probe_nodes_dedup(parsed_nodes, semaphore)
+    logger.info(
+        f"Protocol-level reachable nodes: {len(reachable_all)} / {len(parsed_nodes)}"
+    )
+
+    candidates = cap_per_endpoint(reachable_all)
     cap_counts = {
-        "endpoint": len(parsed_nodes) - len(candidates),
+        "endpoint": len(reachable_all) - len(candidates),
         "subnet": 0,
         "domain": 0,
     }
     logger.info(
-        f"Candidates after endpoint cap: {len(candidates)} "
+        f"Candidates after reachable endpoint cap: {len(candidates)} "
         f"(removed endpoint duplicates: {cap_counts['endpoint']})"
     )
 
     candidate_protocols: Dict[str, int] = {}
     for node in candidates:
         candidate_protocols[node["scheme"]] = candidate_protocols.get(node["scheme"], 0) + 1
-    logger.info(
-        "Candidate protocols: "
-        + ", ".join(f"{key.upper()}={value}" for key, value in sorted(candidate_protocols.items()))
-    )
+    if candidate_protocols:
+        logger.info(
+            "Candidate protocols: "
+            + ", ".join(f"{key.upper()}={value}" for key, value in sorted(candidate_protocols.items()))
+        )
 
-    semaphore = asyncio.Semaphore(MAX_CONCURRENT_PINGS)
-    logger.info(f"Checking reachability (workers={MAX_CONCURRENT_PINGS})...")
-    check_results = await asyncio.gather(
-        *[verify_node(node, semaphore) for node in candidates]
-    )
-    alive_nodes = [
-        node
-        for node, latency in zip(candidates, check_results, strict=True)
-        if latency is not None
-    ]
+    alive_nodes = list(candidates)
     reachable = len(alive_nodes)
-    logger.info(f"Protocol-level reachable nodes: {reachable} / {len(candidates)}")
+    tested_nodes = unreachable_nodes + candidates
 
     cached_nodes: List[dict] = []
     fresh_nodes: List[dict] = []
@@ -1392,7 +1433,12 @@ async def main() -> int:
     tls_status = {"valid": 0, "pinned": 0, "failed": 0}
     if tls_nodes:
         logger.info(f"Inspecting TLS certificates ({len(tls_nodes)} nodes)...")
-        tls_checks = await asyncio.gather(*[inspect_tls(node) for node in tls_nodes])
+
+        async def _inspect_limited(target: dict) -> Tuple[Optional[str], Optional[str]]:
+            async with semaphore:
+                return await inspect_tls(target)
+
+        tls_checks = await asyncio.gather(*[_inspect_limited(node) for node in tls_nodes])
         tls_ids = {id(node) for node in tls_nodes}
         kept_tls: List[dict] = []
         for node, (mode, fingerprint) in zip(tls_nodes, tls_checks, strict=True):
@@ -1470,7 +1516,7 @@ async def main() -> int:
     }
 
     node_history, eligible_ids, stability_stats = update_node_history(
-        node_history_state, candidates, alive_nodes, now
+        node_history_state, tested_nodes, alive_nodes, now
     )
     if stability_stats["held_back"]:
         logger.info(

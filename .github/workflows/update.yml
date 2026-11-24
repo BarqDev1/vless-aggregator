@@ -1,14 +1,7 @@
 name: Update VPN subscriptions
 
 on:
-  schedule:
-    - cron: '*/30 * * * *'
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - 'config/sources.txt'
 
 permissions:
   contents: read

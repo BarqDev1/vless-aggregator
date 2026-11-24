@@ -48,7 +48,7 @@ jobs:
       - name: Install e2e client
         run: |
           mkdir -p bin
-          curl -fsSL -o /tmp/xray.zip https://github.com/XTLS/Xray-core/releases/download/v26.10.21/Xray-linux-64.zip
+          curl -fsSL -o /tmp/xray.zip https://github.com/XTLS/Xray-core/releases/download/v26.7.28/Xray-linux-64.zip
           unzip -q /tmp/xray.zip -d /tmp/xray
           install -m 755 /tmp/xray/xray bin/xray
           bin/xray version

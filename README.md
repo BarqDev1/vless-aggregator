@@ -352,7 +352,7 @@ add_header support-url "https://github.com/BarqDev1/vless-aggregator/issues";
 
 - **Код (`.github/workflows/ci.yml`):** запускается только при `push` в `main` и `pull_request` по изменениям в `src/`, `tests/`, `pyproject.toml`, `requirements*` и workflows (`ruff check`, `mypy`, `pytest --cov`, `pip-audit`).
 - **Подписки (`.github/workflows/update.yml`):** запускается каждые **30 минут** (`*/30 * * * *`), вручную (`workflow_dispatch`) и при изменениях `config/sources.txt` — сразу выполняет `update` без лишней тестовой джобы:
-  1. установка Xray **26.10.21**;
+  1. установка Xray **26.7.28**;
   2. `python -m vpn_aggregator`;
   3. быстрая проверка сгенерированных файлов (`pytest tests/test_outputs.py`);
   4. коммит подписок и `state/`;

@@ -1,8 +1,8 @@
 {
   "counts": {
-    "hysteria2": 7,
-    "total": 149,
-    "vless": 142
+    "total": 109,
+    "vless": 102,
+    "hysteria2": 7
   },
   "home_url": "https://github.com/BarqDev1/vless-aggregator",
   "profile_title": "BarqDev Multi-Protocol VPN",

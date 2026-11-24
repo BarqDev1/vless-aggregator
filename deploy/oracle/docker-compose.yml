@@ -1,0 +1,41 @@
+services:
+  aggregator:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    container_name: vpn-aggregator
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - aggregator_data:/data
+      - ../../config:/app/config:ro
+    ports:
+      - "${BIND_ADDR:-127.0.0.1}:8080:8080"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: vpn-aggregator-caddy
+    profiles: ["tls"]
+    restart: unless-stopped
+    depends_on:
+      - aggregator
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  aggregator_data:
+  caddy_data:
+  caddy_config:

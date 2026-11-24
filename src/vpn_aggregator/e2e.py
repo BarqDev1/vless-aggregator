@@ -10,7 +10,6 @@ are either CA-valid or pinned with `pinnedPeerCertSha256` (`pcs` in links).
 
 from __future__ import annotations
 
-import asyncio
 import json
 import os
 import shutil
@@ -333,15 +332,8 @@ async def verify_nodes(
     timeout: float = 7.0,
 ) -> List[Tuple[dict, str, Optional[float]]]:
     """Verifies nodes concurrently and annotates each node with its e2e status."""
-    xray_bin = _require_binary(xray_bin, "Xray")
-    semaphore = asyncio.Semaphore(max(1, concurrency))
+    from . import batch_e2e
 
-    async def run(node: dict) -> Tuple[dict, str, Optional[float]]:
-        async with semaphore:
-            status, latency = await asyncio.to_thread(verify_one, node, xray_bin, timeout)
-            node["e2e"] = status
-            if latency is not None:
-                node["e2e_ms"] = latency
-            return node, status, latency
-
-    return list(await asyncio.gather(*[run(node) for node in nodes]))
+    return await batch_e2e.verify_nodes_batched(
+        nodes, xray_bin=xray_bin, concurrency=concurrency, timeout=timeout
+    )

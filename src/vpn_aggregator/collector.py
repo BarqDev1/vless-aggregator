@@ -368,6 +368,10 @@ def _detect_flag(remark: str) -> Optional[str]:
     return None
 
 
+_IGNORED_DEDUP_PARAMS = {"fp", "packetencoding", "insecure", "allowinsecure"}
+_TYPE_ALIASES = {"": "tcp", "raw": "tcp", "h2": "http", "splithttp": "xhttp"}
+
+
 def _dedup_key(
     scheme: str,
     host: str,
@@ -376,14 +380,47 @@ def _dedup_key(
     sni: str,
     qs: Dict[str, List[str]],
 ) -> str:
-    """Identity of a config: endpoint + credentials + every transport parameter."""
-    query = urllib.parse.urlencode(sorted((k, v) for k, values in qs.items() for v in values))
+    """Semantic identity of a config, ignoring cosmetic fingerprint/default params."""
+    norm_cred = credential.lower() if scheme == "vless" else credential
+    raw_type = ""
+    for key, values in qs.items():
+        if key.lower() == "type" and values:
+            raw_type = values[0].strip().lower()
+            break
+    canon_type = _TYPE_ALIASES.get(raw_type, raw_type)
+
+    normalized_pairs: List[Tuple[str, str]] = []
+    if scheme in ("vless", "trojan"):
+        normalized_pairs.append(("type", canon_type))
+
+    for key, values in qs.items():
+        lk = key.lower()
+        if lk in _IGNORED_DEDUP_PARAMS or lk == "type":
+            continue
+        for value in values:
+            if value == "":
+                continue
+            lv = value.lower()
+            if lk == "encryption" and lv == "none":
+                continue
+            if lk == "spx" and value == "/":
+                continue
+            if lk == "headertype" and lv == "none":
+                continue
+            if lk == "mode" and (
+                (canon_type == "grpc" and lv == "gun")
+                or (canon_type != "grpc" and lv == "auto")
+            ):
+                continue
+            normalized_pairs.append((lk, value))
+
+    query = urllib.parse.urlencode(sorted(normalized_pairs))
     return "|".join(
         [
             scheme,
             host.lower(),
             str(port),
-            credential,
+            norm_cred,
             (sni or "").lower(),
             query,
         ]
@@ -784,7 +821,7 @@ def format_link(node: dict) -> str:
         if node.get("tls_cert_sha256"):
             pairs.append(("pinSHA256", node["tls_cert_sha256"]))
 
-    rebuilt = f"{scheme}://{location}"
+    rebuilt = f"{node['scheme']}://{location}"
     if pairs:
         rebuilt += "?" + urllib.parse.urlencode(pairs)
     return f"{rebuilt}#{urllib.parse.quote(node['remark'], safe='')}"
@@ -1086,8 +1123,18 @@ def update_node_history(
         recent = [True, True] if bootstrap else [*entry.get("recent", []), True]
         entry["recent"] = recent[-NODE_RECENT_WINDOW:]
         entry["successes"] = int(entry.get("successes", 0)) + 1
+        entry["streak"] = int(entry.get("streak", 0)) + 1
         entry["last_seen"] = timestamp
         entry["last_success"] = timestamp
+        sample_ms = node.get("e2e_ms") if node.get("e2e_ms") is not None else node.get("latency_ms")
+        if isinstance(sample_ms, (int, float)):
+            prev_ema = entry.get("ema_ms")
+            if isinstance(prev_ema, (int, float)):
+                entry["ema_ms"] = round(0.6 * float(sample_ms) + 0.4 * float(prev_ema), 1)
+            else:
+                entry["ema_ms"] = round(float(sample_ms), 1)
+            node["ema_ms"] = entry["ema_ms"]
+        node["streak"] = entry["streak"]
         if node.get("last_verified_at"):
             entry["last_verified_at"] = node["last_verified_at"]
         else:
@@ -1112,6 +1159,7 @@ def update_node_history(
         failed_node = tested_map.get(node_id, {})
         failed_entry["recent"] = [*failed_entry.get("recent", []), False][-NODE_RECENT_WINDOW:]
         failed_entry["failures"] = int(failed_entry.get("failures", 0)) + 1
+        failed_entry["streak"] = 0
         failed_entry["last_seen"] = timestamp
         failed_entry.pop("last_verified_at", None)
         if failed_node.get("last_e2e_at") and failed_node.get("e2e") in ("failed", "cached_failed"):
@@ -1157,10 +1205,25 @@ def update_node_history(
 
 
 def build_meta(alive_counts: Dict[str, int], total: int, now: datetime) -> dict:
-    raw_base = (
-        "https://raw.githubusercontent.com/"
-        f"{os.getenv('GITHUB_REPOSITORY', 'BarqDev1/vless-aggregator')}/main"
-    )
+    public_base = os.getenv("PUBLIC_BASE_URL", "").strip().rstrip("/")
+    sub_key = os.getenv("SUB_KEY", "").strip("/")
+    if public_base:
+        prefix = f"{public_base}/{sub_key}" if sub_key else public_base
+        subscriptions = {
+            "all": f"{prefix}/all",
+            "vless": f"{prefix}/vless",
+            "hysteria2": f"{prefix}/hy2",
+        }
+    else:
+        raw_base = (
+            "https://raw.githubusercontent.com/"
+            f"{os.getenv('GITHUB_REPOSITORY', 'BarqDev1/vless-aggregator')}/main"
+        )
+        subscriptions = {
+            "all": f"{raw_base}/all_universal.txt",
+            "vless": f"{raw_base}/vless_universal.txt",
+            "hysteria2": f"{raw_base}/hysteria2.txt",
+        }
     return {
         "profile_title": PROFILE_TITLE,
         "profile_update_interval": PROFILE_UPDATE_INTERVAL,
@@ -1169,11 +1232,7 @@ def build_meta(alive_counts: Dict[str, int], total: int, now: datetime) -> dict:
         "subscription_userinfo": None,
         "updated_at": now.isoformat(timespec="seconds"),
         "counts": {"total": total, **dict(sorted(alive_counts.items()))},
-        "subscriptions": {
-            "all": f"{raw_base}/all_universal.txt",
-            "vless": f"{raw_base}/vless_universal.txt",
-            "hysteria2": f"{raw_base}/hysteria2.txt",
-        },
+        "subscriptions": subscriptions,
     }
 
 
@@ -1541,9 +1600,17 @@ async def main() -> int:
         stability_stats["held_back"] = 0
 
     def latency_value(node: dict) -> Optional[float]:
-        if E2E_VERIFY and node.get("e2e") in ("verified", "cached") and node.get("e2e_ms") is not None:
-            return node["e2e_ms"]
-        return node.get("latency_ms")
+        base = node.get("ema_ms")
+        if base is None:
+            if E2E_VERIFY and node.get("e2e") in ("verified", "cached") and node.get("e2e_ms") is not None:
+                base = node["e2e_ms"]
+            else:
+                base = node.get("latency_ms")
+        if base is None:
+            return None
+        if int(node.get("streak") or 0) >= 3:
+            return round(float(base) * 0.85, 1)
+        return float(base)
 
     alive_nodes.sort(key=lambda node: (latency_value(node) is None, latency_value(node) or 0))
 

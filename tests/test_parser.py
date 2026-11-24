@@ -198,6 +198,27 @@ def test_dedup_keeps_distinct_configs():
     assert first["dedup_key"] != third["dedup_key"]
 
 
+def test_dedup_collapses_cosmetic_fp_and_default_params():
+    base = (
+        f"vless://{UUID}@1.2.3.4:443"
+        "?encryption=none&security=reality&pbk=SbVKOEMjK0sIlbwg4akyBg5mL5KZwwB"
+        "&sni=example.com&type=tcp&fp=chrome&packetEncoding=xudp#Node1"
+    )
+    clone = (
+        f"vless://{UUID.upper()}@1.2.3.4:443"
+        "?security=reality&pbk=SbVKOEMjK0sIlbwg4akyBg5mL5KZwwB"
+        "&sni=example.com&type=raw&fp=firefox#Node2"
+    )
+    first = c.parse_vpn_link(base)
+    second = c.parse_vpn_link(clone)
+    assert first is not None and second is not None
+    assert first["dedup_key"] == second["dedup_key"]
+
+    hy2 = c.parse_vpn_link("hy2://auth@example.com:443?sni=example.com#Japan")
+    assert hy2 is not None
+    assert c.format_link(hy2).startswith("hysteria2://")
+
+
 def test_clean_git_url():
     assert c._clean_git_url("git+https://gitlab.com/a/b") == "https://gitlab.com/a/b.git"
     assert c._clean_git_url("https://github.com/a/b.git") == "https://github.com/a/b.git"

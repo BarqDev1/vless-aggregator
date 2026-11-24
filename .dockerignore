@@ -1,0 +1,16 @@
+.git/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.cache/
+bin/
+.DS_Store
+.wrangler/
+node_modules/
+.env
+deploy/oracle/.env

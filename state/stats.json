@@ -1,8 +1,8 @@
 {
-  "alive": 149,
+  "alive": 109,
   "alive_by_protocol": {
     "hysteria2": 7,
-    "vless": 142
+    "vless": 102
   },
   "baseline_reset": false,
   "candidates_after_cap": 823,

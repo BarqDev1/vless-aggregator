@@ -11,3 +11,5 @@ bin/
 .DS_Store
 .wrangler/
 node_modules/
+.env
+deploy/oracle/.env

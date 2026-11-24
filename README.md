@@ -145,14 +145,15 @@ flowchart LR
 
 ---
 
-## 🔒 Приватный репозиторий
+## 🔒 Свой сервер (Oracle Cloud 4 OCPU / 24 GB) и приватный режим
 
-Если сделать репозиторий приватным, **raw-ссылки перестанут работать**. Для приватного
-режима используйте готовый Cloudflare Worker:
+В проекте есть полноценный серверный режим (`python -m vpn_aggregator.server`) с пакетной проверкой Xray (`E2E_BATCH_SIZE=32`), кэшированием E2E, раздачей подписок (raw и Base64) и автообновлением каждые 15 минут:
 
-- `deploy/cloudflare-worker.js` — прокси с GitHub PAT;
-- `deploy/wrangler.toml` — конфиг;
-- `deploy/README.md` — пошаговая инструкция.
+- `deploy/oracle/install.sh` — установка в 1 команду на Ubuntu/ARM64 (`systemd`);
+- `deploy/oracle/docker-compose.yml` + `Dockerfile` + `deploy/oracle/Caddyfile` — Docker + авто-HTTPS;
+- `deploy/oracle/README.md` — подробная инструкция для **Oracle Cloud Always Free**.
+
+Для приватной раздачи поверх GitHub-репозитория без собственного сервера по-прежнему доступны файлы `deploy/cloudflare-worker.js` и `deploy/README.md`.
 
 Клиенты используют:
 

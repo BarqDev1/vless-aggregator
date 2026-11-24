@@ -1,90 +1,46 @@
 #!/usr/bin/env python3
-"""
-Multi-Protocol VPN Aggregator & Connectivity Checker.
-
-Collects VLESS, Trojan and Hysteria2 configs from HTTP(S) subscriptions and
-Git repositories, validates them, removes exact duplicates, checks protocol
-level reachability and writes normalized subscription files.
-
-VMess and Shadowsocks are intentionally not supported: VMess is excluded by
-project policy, Shadowsocks is unreliable behind TSPU.
-
-Exit codes:
-    0 - success
-    1 - output guard triggered (previous subscription files are kept intact)
-    2 - no usable sources / no nodes parsed
-"""
+"""Multi-Protocol VPN Aggregator & Connectivity Checker (orchestrator & public facade)."""
 
 from __future__ import annotations
 
 import asyncio
-import base64
-import binascii
-import hashlib
-import html
-import ipaddress
-import json
 import logging
 import os
-import re
-import ssl
-import subprocess
 import sys
-import tempfile
 import time
-import urllib.parse
-from contextlib import suppress
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import aiohttp
-from cryptography.hazmat.primitives import serialization
 
-from . import e2e, geoip
-
-try:  # Hysteria2 runs over QUIC; without aioquic we cannot check it honestly.
-    from aioquic.asyncio.client import connect as quic_connect
-    from aioquic.quic.configuration import QuicConfiguration
-
-    HAS_AIOQUIC = True
-except ImportError:  # pragma: no cover - exercised only without the dependency
-    quic_connect = None  # type: ignore[assignment]
-    QuicConfiguration = None  # type: ignore[misc,assignment]
-    HAS_AIOQUIC = False
-
+from . import e2e, exporter, geoip, hy2_e2e, parser, prober, quality, sources
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
-def _project_path(*parts: str) -> str:
+def _p(*parts: str) -> str:
     return str(PROJECT_ROOT.joinpath(*parts))
 
+def _flag(name: str, default: str = "0") -> bool:
+    return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "on"}
 
-SOURCES_FILE = os.getenv("SOURCES_FILE", _project_path("config", "sources.txt"))
-VLESS_OUTPUT = os.getenv("VLESS_OUTPUT", _project_path("vless_universal.txt"))
-HY2_OUTPUT = os.getenv("HY2_OUTPUT", _project_path("hysteria2.txt"))
-ALL_OUTPUT = os.getenv("ALL_OUTPUT", _project_path("all_universal.txt"))
-STATS_OUTPUT = os.getenv("STATS_OUTPUT", _project_path("state", "stats.json"))
-SOURCE_HEALTH_FILE = os.getenv(
-    "SOURCE_HEALTH_FILE", _project_path("state", "source_health.json")
-)
-SOURCE_CACHE_FILE = os.getenv(
-    "SOURCE_CACHE_FILE", _project_path("state", "source_cache.json")
-)
-NODE_HISTORY_FILE = os.getenv(
-    "NODE_HISTORY_FILE", _project_path("state", "node_history.json")
-)
-HISTORY_FILE = os.getenv("HISTORY_FILE", _project_path("state", "history.json"))
-META_FILE = os.getenv("META_FILE", _project_path("state", "meta.json"))
+SOURCES_FILE = os.getenv("SOURCES_FILE", _p("config", "sources.txt"))
+VLESS_OUTPUT = os.getenv("VLESS_OUTPUT", _p("vless_universal.txt"))
+HY2_OUTPUT = os.getenv("HY2_OUTPUT", _p("hysteria2.txt"))
+ALL_OUTPUT = os.getenv("ALL_OUTPUT", _p("all_universal.txt"))
+STATS_OUTPUT = os.getenv("STATS_OUTPUT", _p("state", "stats.json"))
+SOURCE_HEALTH_FILE = os.getenv("SOURCE_HEALTH_FILE", _p("state", "source_health.json"))
+SOURCE_CACHE_FILE = os.getenv("SOURCE_CACHE_FILE", _p("state", "source_cache.json"))
+NODE_HISTORY_FILE = os.getenv("NODE_HISTORY_FILE", _p("state", "node_history.json"))
+HISTORY_FILE = os.getenv("HISTORY_FILE", _p("state", "history.json"))
+META_FILE = os.getenv("META_FILE", _p("state", "meta.json"))
+RU_GEOIP_CACHE_FILE = os.getenv("RU_GEOIP_CACHE_FILE", _p(".cache", "ru_geoip_cache.json"))
 
 PROFILE_TITLE = os.getenv("PROFILE_TITLE", "BarqDev Multi-Protocol VPN")
-SUPPORT_URL = os.getenv(
-    "SUPPORT_URL", "https://github.com/BarqDev1/vless-aggregator/issues"
-)
+SUPPORT_URL = os.getenv("SUPPORT_URL", "https://github.com/BarqDev1/vless-aggregator/issues")
 PROFILE_UPDATE_INTERVAL = float(os.getenv("PROFILE_UPDATE_INTERVAL", "0.5"))
 HOME_URL = os.getenv("HOME_URL", "https://github.com/BarqDev1/vless-aggregator")
-
 TIMEOUT = float(os.getenv("PING_TIMEOUT", "3.0"))
 QUIC_TIMEOUT = float(os.getenv("QUIC_TIMEOUT", "5.0"))
 CHECK_ATTEMPTS = max(1, int(os.getenv("CHECK_ATTEMPTS", "2")))
@@ -95,7 +51,6 @@ FETCH_ATTEMPTS = max(1, int(os.getenv("FETCH_ATTEMPTS", "3")))
 MAX_SOURCE_BYTES = int(os.getenv("MAX_SOURCE_BYTES", str(5 * 1024 * 1024)))
 MAX_GIT_FILE_BYTES = int(os.getenv("MAX_GIT_FILE_BYTES", str(2 * 1024 * 1024)))
 MAX_GIT_FILES = int(os.getenv("MAX_GIT_FILES", "2000"))
-
 MIN_ALIVE = int(os.getenv("MIN_ALIVE", "10"))
 MAX_DROP_RATIO = float(os.getenv("MAX_DROP_RATIO", "0.5"))
 MAX_PER_ENDPOINT = max(1, int(os.getenv("MAX_PER_ENDPOINT", "6")))
@@ -104,1716 +59,289 @@ MAX_PER_SUBNET = max(1, int(os.getenv("MAX_PER_SUBNET", "6")))
 MAX_PER_DOMAIN = max(1, int(os.getenv("MAX_PER_DOMAIN", "10")))
 MAX_REMARK_LEN = int(os.getenv("MAX_REMARK_LEN", "120"))
 
-E2E_VERIFY = os.getenv("E2E_VERIFY", "0").strip().lower() in {"1", "true", "yes", "on"}
-NODE_MIN_RECENT_SUCCESS = max(
-    1, int(os.getenv("NODE_MIN_RECENT_SUCCESS", "1" if E2E_VERIFY else "2"))
-)
+E2E_VERIFY = _flag("E2E_VERIFY", "0")
+NODE_MIN_RECENT_SUCCESS = max(1, int(os.getenv("NODE_MIN_RECENT_SUCCESS", "1" if E2E_VERIFY else "2")))
 NODE_RECENT_WINDOW = max(1, int(os.getenv("NODE_RECENT_WINDOW", "3")))
 NODE_HISTORY_TTL_DAYS = max(1, int(os.getenv("NODE_HISTORY_TTL_DAYS", "30")))
 MAX_NODE_HISTORY = max(100, int(os.getenv("MAX_NODE_HISTORY", "10000")))
 HISTORY_MAX_RUNS = max(24, int(os.getenv("HISTORY_MAX_RUNS", "1440")))
-
 E2E_CACHE_MINUTES = max(0.0, float(os.getenv("E2E_CACHE_MINUTES", "60")))
 E2E_FAILURE_CACHE_MINUTES = max(0.0, float(os.getenv("E2E_FAILURE_CACHE_MINUTES", "15")))
-
 PROTOCOL_MIN_ALIVE = max(1, int(os.getenv("PROTOCOL_MIN_ALIVE", "3")))
 PROTOCOL_MAX_DROP = float(os.getenv("PROTOCOL_MAX_DROP", "0.7"))
-
 SOURCE_FAILURE_THRESHOLD = max(1, int(os.getenv("SOURCE_FAILURE_THRESHOLD", "5")))
 SOURCE_QUARANTINE_HOURS = float(os.getenv("SOURCE_QUARANTINE_HOURS", "2"))
-
 E2E_CONCURRENCY = max(1, int(os.getenv("E2E_CONCURRENCY", "16")))
 E2E_TIMEOUT = float(os.getenv("E2E_TIMEOUT", "8.0"))
 XRAY_BIN = os.getenv("XRAY_BIN", "xray")
-BASELINE_RESET = os.getenv("BASELINE_RESET", "0").strip().lower() in {"1", "true", "yes", "on"}
-ONLY_RU_IPS = os.getenv("ONLY_RU_IPS", "1").strip().lower() in {"1", "true", "yes", "on"}
-RU_GEOIP_CACHE_FILE = os.getenv(
-    "RU_GEOIP_CACHE_FILE", _project_path(".cache", "ru_geoip_cache.json")
-)
+HY2_BIN = os.getenv("HY2_BIN", "hysteria")
+BASELINE_RESET = _flag("BASELINE_RESET", "0")
+ONLY_RU_IPS = _flag("ONLY_RU_IPS", "1")
+REJECT_RU_EXIT = _flag("REJECT_RU_EXIT", "1" if ONLY_RU_IPS else "0")
+FILTER_POISONED_SNI = _flag("FILTER_POISONED_SNI", "1")
 DNS_CONCURRENCY = max(1, int(os.getenv("DNS_CONCURRENCY", "32")))
 DNS_TIMEOUT = float(os.getenv("DNS_TIMEOUT", "5.0"))
+DEFAULT_HEADERS = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/126.0.0.0 Safari/537.36", "Accept": "*/*"}
 
-DEFAULT_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
-    ),
-    "Accept": "*/*",
-}
-
-logging.basicConfig(
-    level=os.getenv("LOG_LEVEL", "INFO").upper(),
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    datefmt="%H:%M:%S",
-)
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper(), format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
 logger = logging.getLogger("aggregator")
 logging.getLogger("aioquic").setLevel(logging.CRITICAL)
 logging.getLogger("aiohttp").setLevel(logging.WARNING)
-
-
-class _DropAioquicNoise(logging.Filter):
-    """QUIC handshake attempts are expected to fail; aioquic logs them at INFO/ERROR."""
-
-    def filter(self, record: logging.LogRecord) -> bool:
-        noisy = ("aioquic", "quic", "http3")
-        if record.name.startswith(noisy):
-            return False
-        # aioquic cancels handshakes on timeout; asyncio reports the shielded/unretrieved future.
-        msg = record.getMessage()
-        if record.name == "asyncio" and (
-            "shielded future" in msg or "Future exception was never retrieved" in msg
-        ):
-            return False
-        return True
-
-
-for _handler in logging.getLogger().handlers:
-    _handler.addFilter(_DropAioquicNoise())
-
-FLAG_REGEX = re.compile(r"[\U0001F1E6-\U0001F1FF]{2}")
-COUNTRY_CODE_REGEX = re.compile(r"(?:^|[\s\[(_\-|])([A-Z]{2})(?:[\s\])_\-|.,;:]|$)")
-SCHEME_ALIASES = {"hy2": "hysteria2"}
-SUPPORTED_SCHEMES = ("vless", "trojan", "hysteria2")
-SUPPORTED_PREFIXES = tuple(f"{s}://" for s in ("vless", "trojan", "hysteria2", "hy2"))
-
-# Protocols that are deliberately excluded from this aggregator.
-EXCLUDED_PREFIXES = ("vmess://", "ss://", "ssr://", "tuic://")
-
-LINK_REGEX = re.compile(r"(?<![A-Za-z0-9])(?:vless|trojan|hysteria2|hy2)://[^\s\"'<>\\]+", re.IGNORECASE)
-UUID_REGEX = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
-INVISIBLE_REGEX = re.compile(r"[\x00-\x1f\x7f\u200b-\u200f\u202a-\u202e\ufeff]")
-HOST_LABEL_REGEX = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9])?$")
-
-COUNTRY_CODES = {
-    "AE", "AM", "AR", "AT", "AU", "BE", "BG", "BR", "BY", "CA", "CH", "CY",
-    "CZ", "DE", "DK", "EE", "ES", "FI", "FR", "GB", "GE", "GR", "HK", "HR",
-    "HU", "ID", "IE", "IL", "IN", "IS", "IT", "JP", "KR", "KZ", "LT", "LU",
-    "LV", "MD", "ME", "MT", "MX", "MY", "NL", "NO", "NZ", "PH", "PL", "PT",
-    "RO", "RS", "RU", "SE", "SG", "SI", "SK", "TH", "TR", "TW", "UA", "US",
-    "VN", "ZA",
-}
-
-
-class GuardError(RuntimeError):
-    """Raised when the fresh output looks dangerously small."""
-
-
-def code_to_flag(code: str) -> str:
-    """Converts a two-letter ISO country code (e.g. 'RU') to a flag emoji."""
-    return "".join(chr(0x1F1E6 + ord(c) - ord("A")) for c in code.upper())
-
-
-def sanitize_remark(remark: str) -> str:
-    """Removes control/zero-width characters and normalizes whitespace."""
-    remark = INVISIBLE_REGEX.sub(" ", remark)
-    remark = re.sub(r"\s+", " ", remark).strip()
-    return remark[:MAX_REMARK_LEN].strip()
-
-
-def _valid_host(host: str) -> bool:
-    if not host or len(host) > 253:
-        return False
-    if any(ch.isspace() or ord(ch) < 33 for ch in host):
-        return False
-    try:
-        ipaddress.ip_address(host)
-        return True
-    except ValueError:
-        pass
-    labels = host.rstrip(".").split(".")
-    return all(HOST_LABEL_REGEX.fullmatch(label) for label in labels)
-
-
-def _split_userinfo(rest: str) -> List[Tuple[str, str]]:
-    """Returns candidate (userinfo, host_query) splits.
-
-    Standard URIs have a single '@'; some sources put a raw '@' inside the
-    password or inside a query value, so try the first and the last separator.
-    """
-    candidates: List[Tuple[str, str]] = []
-    first = rest.partition("@")
-    if first[1]:
-        candidates.append((first[0], first[2]))
-    last = rest.rpartition("@")
-    if last[1] and (not candidates or last[0] != candidates[0][0]):
-        candidates.append((last[0], last[2]))
-    if not candidates:
-        return [("", rest)]
-    return candidates
-
-
-def _parse_host_port(host_port: str) -> Optional[Tuple[str, int]]:
-    """Returns (host, port) or None. Port 0 means 'use the protocol default'."""
-    host_port = host_port.rstrip("/")
-    if not host_port:
-        return None
-
-    if host_port.startswith("["):
-        end = host_port.find("]")
-        if end < 0:
-            return None
-        host = host_port[1:end]
-        remainder = host_port[end + 1 :]
-        if remainder.startswith(":"):
-            port_str = remainder[1:]
-        elif remainder:
-            return None
-        else:
-            port_str = ""
-    else:
-        if host_port.count(":") > 1:
-            return None  # unbracketed IPv6
-        host, sep, port_str = host_port.partition(":")
-        if not sep:
-            port_str = ""
-
-    if port_str:
-        if not port_str.isdigit():
-            return None
-        port = int(port_str)
-        if not 0 < port < 65536:
-            return None
-        return host, port
-    return host, 0
-
-
-def parse_vpn_link(link: str) -> Optional[dict]:
-    """Parses and validates a supported VPN URI into structured fields."""
-    link = link.strip()
-    if not link or len(link) > 8192:
-        return None
-
-    scheme, sep, rest = link.partition("://")
-    scheme = scheme.lower()
-    if not sep or scheme not in ("vless", "trojan", "hysteria2", "hy2"):
-        return None
-
-    canonical = SCHEME_ALIASES.get(scheme, scheme)
-    url_part, _, raw_remark = rest.partition("#")
-    remark = sanitize_remark(urllib.parse.unquote(raw_remark))
-
-    parsed: Optional[Tuple[str, str, Tuple[str, int]]] = None
-    for raw_userinfo, host_query in _split_userinfo(url_part):
-        candidate_userinfo = urllib.parse.unquote(raw_userinfo).strip()
-        candidate_host_port, _, candidate_query = host_query.partition("?")
-        candidate_host = _parse_host_port(candidate_host_port)
-        if candidate_host and _valid_host(candidate_host[0]):
-            parsed = (candidate_userinfo, candidate_query, candidate_host)
-            break
-    if not parsed:
-        return None
-
-    userinfo, raw_query, parsed_host = parsed
-    host, port = parsed_host
-
-    default_port = 8443 if canonical == "hysteria2" else 443
-    port = port or default_port
-    if not 0 < port < 65536:
-        return None
-
-    qs = urllib.parse.parse_qs(raw_query, keep_blank_values=True)
-    sni = (qs.get("sni") or qs.get("host") or [""])[0].strip()
-    security = (qs.get("security") or [""])[0].lower()
-    if canonical == "hysteria2":
-        pinned = (qs.get("pinSHA256") or qs.get("pinsha256") or [""])[0].strip()
-    else:
-        pinned = (qs.get("pcs") or [""])[0].strip() if security == "tls" else ""
-
-    if canonical == "vless":
-        if not UUID_REGEX.match(userinfo):
-            return None
-        # New Xray-core refuses plaintext VLESS to public addresses, so only
-        # TLS or Reality nodes are usable in modern clients (INCY, v2rayN, ...).
-        if security not in ("tls", "reality"):
-            return None
-        if security == "reality" and not (qs.get("pbk") or [""])[0]:
-            return None
-    elif canonical == "trojan":
-        if not userinfo:
-            return None
-    # Hysteria2 auth is optional, so an empty userinfo is valid.
-
-    flag = _detect_flag(remark)
-    if not flag:
-        flag = "🌐"
-    elif flag not in remark:
-        remark = sanitize_remark(f"{flag} {remark}")
-
-    key = _dedup_key(canonical, host, port, userinfo, sni, qs)
-    return {
-        "scheme": canonical,
-        "link": link,
-        "host": host,
-        "port": port,
-        "sni": sni,
-        "security": security,
-        "flag": flag,
-        "remark": remark or "🌐",
-        "transport": "udp" if canonical == "hysteria2" else "tcp",
-        "credential": userinfo,
-        "query": qs,
-        "tls_mode": "pinned" if pinned else None,
-        "tls_cert_sha256": pinned or None,
-        "dedup_key": key,
-    }
-
-
-def _detect_flag(remark: str) -> Optional[str]:
-    flag_match = FLAG_REGEX.search(remark)
-    if flag_match:
-        return flag_match.group(0)
-    code_match = COUNTRY_CODE_REGEX.search(remark)
-    if code_match and code_match.group(1) in COUNTRY_CODES:
-        return code_to_flag(code_match.group(1))
-    return None
-
-
-_IGNORED_DEDUP_PARAMS = {"fp", "packetencoding", "insecure", "allowinsecure"}
-_TYPE_ALIASES = {"": "tcp", "raw": "tcp", "h2": "http", "splithttp": "xhttp"}
-
-
-def _dedup_key(
-    scheme: str,
-    host: str,
-    port: int,
-    credential: str,
-    sni: str,
-    qs: Dict[str, List[str]],
-) -> str:
-    """Semantic identity of a config, ignoring cosmetic fingerprint/default params."""
-    norm_cred = credential.lower() if scheme == "vless" else credential
-    raw_type = ""
-    for key, values in qs.items():
-        if key.lower() == "type" and values:
-            raw_type = values[0].strip().lower()
-            break
-    canon_type = _TYPE_ALIASES.get(raw_type, raw_type)
-
-    normalized_pairs: List[Tuple[str, str]] = []
-    if scheme in ("vless", "trojan"):
-        normalized_pairs.append(("type", canon_type))
-
-    for key, values in qs.items():
-        lk = key.lower()
-        if lk in _IGNORED_DEDUP_PARAMS or lk == "type":
-            continue
-        for value in values:
-            if value == "":
-                continue
-            lv = value.lower()
-            if lk == "encryption" and lv == "none":
-                continue
-            if lk == "spx" and value == "/":
-                continue
-            if lk == "headertype" and lv == "none":
-                continue
-            if lk == "mode" and (
-                (canon_type == "grpc" and lv == "gun")
-                or (canon_type != "grpc" and lv == "auto")
-            ):
-                continue
-            normalized_pairs.append((lk, value))
-
-    query = urllib.parse.urlencode(sorted(normalized_pairs))
-    return "|".join(
-        [
-            scheme,
-            host.lower(),
-            str(port),
-            norm_cred,
-            (sni or "").lower(),
-            query,
-        ]
-    )
-
-
-async def _check_tcp(node: dict, timeout: float) -> bool:
-    try:
-        _, writer = await asyncio.wait_for(
-            asyncio.open_connection(node["host"], node["port"]), timeout=timeout
-        )
-        writer.close()
-        with suppress(Exception):
-            await asyncio.wait_for(writer.wait_closed(), timeout=1.0)
-        return True
-    except Exception:
-        return False
-
-
-async def check_connectivity(node: dict, timeout: Optional[float] = None) -> bool:
-    """Checks protocol-level reachability of a single node (one attempt)."""
-    return await probe_node(node, timeout) is not None
-
-
-async def probe_node(node: dict, timeout: Optional[float] = None) -> Optional[float]:
-    """Returns handshake latency in milliseconds when the node answers."""
-    started = time.perf_counter()
-    if node["transport"] == "udp":
-        alive = await _check_quic(node, timeout if timeout is not None else QUIC_TIMEOUT)
-    else:
-        alive = await _check_tcp(node, timeout if timeout is not None else TIMEOUT)
-    if not alive:
-        return None
-    return round((time.perf_counter() - started) * 1000, 1)
-
-
-async def _check_quic(node: dict, timeout: float) -> bool:
-    """Completes a QUIC v1 handshake (ALPN h3) with the Hysteria2 endpoint."""
-    if not HAS_AIOQUIC:
-        return False
-
-    host, port = node["host"], node["port"]
-    config = QuicConfiguration(is_client=True, alpn_protocols=["h3"], verify_mode=ssl.CERT_NONE)
-    config.server_name = node["sni"] or node["host"]
-
-    try:
-        async with asyncio.timeout(timeout):
-            async with quic_connect(host, port, configuration=config) as protocol:
-                if node.get("scheme") == "hysteria2":
-                    try:
-                        certificate = protocol._quic.tls._peer_certificate
-                        if certificate is not None:
-                            der = certificate.public_bytes(serialization.Encoding.DER)
-                            node["tls_mode"] = "pinned"
-                            node["tls_cert_sha256"] = hashlib.sha256(der).hexdigest()
-                    except Exception:
-                        pass
-                return True
-    except Exception:
-        return False
-
-
-async def inspect_tls(node: dict, timeout: float = 6.0) -> Tuple[Optional[str], Optional[str]]:
-    """Classifies a TLS node as CA-valid or self-signed (returns its cert hash).
-
-    Modern Xray-core removed `allowInsecure`, so subscriptions must either use
-    a CA-valid certificate or pin the leaf certificate with `pcs`.
-    """
-    if node.get("security") != "tls":
-        return None, None
-
-    sni = node.get("sni") or node["host"]
-
-    for attempt in range(2):
-        try:
-            context = ssl.create_default_context()
-            _, writer = await asyncio.wait_for(
-                asyncio.open_connection(node["host"], node["port"], ssl=context, server_hostname=sni),
-                timeout=timeout,
-            )
-            writer.close()
-            with suppress(Exception):
-                await asyncio.wait_for(writer.wait_closed(), timeout=1.0)
-            return "valid", None
-        except (ssl.SSLError, ssl.CertificateError):
-            break
-        except Exception:
-            if attempt == 0:
-                await asyncio.sleep(0.3)
-                continue
-            break
-
-    for attempt in range(2):
-        try:
-            context = ssl.create_default_context()
-            context.check_hostname = False
-            context.verify_mode = ssl.CERT_NONE
-            _, writer = await asyncio.wait_for(
-                asyncio.open_connection(node["host"], node["port"], ssl=context, server_hostname=sni),
-                timeout=timeout,
-            )
-            ssl_object = writer.get_extra_info("ssl_object")
-            certificate = ssl_object.getpeercert(binary_form=True) if ssl_object else None
-            writer.close()
-            with suppress(Exception):
-                await asyncio.wait_for(writer.wait_closed(), timeout=1.0)
-            if certificate:
-                return "pinned", hashlib.sha256(certificate).hexdigest()
-        except Exception:
-            if attempt == 0:
-                await asyncio.sleep(0.3)
-                continue
-    return None, None
-
-
-async def verify_node(node: dict, semaphore: asyncio.Semaphore) -> Optional[float]:
-    """Checks a node with retries, limited by the shared semaphore."""
-    async with semaphore:
-        for attempt in range(1, CHECK_ATTEMPTS + 1):
-            latency = await probe_node(node)
-            if latency is not None:
-                node["latency_ms"] = latency
-                return latency
-            if attempt < CHECK_ATTEMPTS:
-                await asyncio.sleep(0.4 * attempt)
-        return None
-
-
-async def probe_nodes_dedup(
-    nodes: List[dict], semaphore: asyncio.Semaphore
-) -> Tuple[List[dict], List[dict]]:
-    """Probes each unique (transport, host, port, quic_sni) once and fans out results."""
-    groups: Dict[Tuple[str, str, int, str], List[dict]] = {}
-    for node in nodes:
-        sni_key = (node["sni"] or node["host"]).lower() if node["transport"] == "udp" else ""
-        key = (node["transport"], node["host"].lower(), node["port"], sni_key)
-        groups.setdefault(key, []).append(node)
-
-    reps = [group[0] for group in groups.values()]
-    latencies = await asyncio.gather(*[verify_node(rep, semaphore) for rep in reps])
-
-    reachable_nodes: List[dict] = []
-    unreachable_nodes: List[dict] = []
-    for group, rep, latency in zip(groups.values(), reps, latencies, strict=True):
-        if latency is None:
-            unreachable_nodes.extend(group)
-            continue
-        for node in group:
-            node["latency_ms"] = latency
-            if rep.get("tls_cert_sha256") and not node.get("tls_cert_sha256"):
-                node["tls_mode"] = rep.get("tls_mode")
-                node["tls_cert_sha256"] = rep["tls_cert_sha256"]
-            reachable_nodes.append(node)
-    return reachable_nodes, unreachable_nodes
-
-
-def _clean_git_url(repo_url: str) -> str:
-    url = repo_url[4:] if repo_url.startswith("git+") else repo_url
-    url = url.strip()
-    if not url.startswith(("https://", "http://")):
-        raise ValueError(f"unsupported git URL: {repo_url}")
-    if not url.endswith(".git") and ("gitlab.com" in url or "github.com" in url):
-        url = url.rstrip("/") + ".git"
-    return url
+for _h in logging.getLogger().handlers:
+    _h.addFilter(prober._DropAioquicNoise())
+
+# Public facade re-exports for backward compatibility.
+COUNTRY_CODES, EXCLUDED_PREFIXES, LINK_REGEX = parser.COUNTRY_CODES, parser.EXCLUDED_PREFIXES, parser.LINK_REGEX
+SUPPORTED_PREFIXES, SUPPORTED_SCHEMES, UUID_REGEX = parser.SUPPORTED_PREFIXES, parser.SUPPORTED_SCHEMES, parser.UUID_REGEX
+code_to_flag, sanitize_remark, parse_vpn_link = parser.code_to_flag, parser.sanitize_remark, parser.parse_vpn_link
+extract_links, format_link, _dedup_key = parser.extract_links, parser.format_link, parser._dedup_key
+HAS_AIOQUIC, inspect_tls = prober.HAS_AIOQUIC, prober.inspect_tls
+_domain_key, _subnet_key = prober._domain_key, prober._subnet_key
+_check_tcp, _check_quic = prober.check_tcp, prober.check_quic
+_clean_git_url, _header_value = sources._clean_git_url, sources._header_value
+_parse_datetime, _load_sources = sources.parse_datetime, sources.load_sources
+load_source_cache, load_source_health, select_active_sources = sources.load_source_cache, sources.load_source_health, sources.select_active_sources
+GuardError, node_history_id = exporter.GuardError, exporter.node_history_id
+load_history_list, load_node_history = exporter.load_history_list, exporter.load_node_history
+load_previous_stats, read_previous_count = exporter.load_previous_stats, exporter.read_previous_count
+latency_summary, speed_summary, rank_node_key = exporter.latency_summary, exporter.speed_summary, exporter.rank_node_key
+write_atomic, write_json_atomic = exporter.write_atomic, exporter.write_json_atomic
+_reexport_types = (timedelta,)
 
 
 def _clone_git_repo(repo_url: str) -> List[str]:
-    """Clones a Git repository and recursively extracts links from text files."""
-    try:
-        clean_url = _clean_git_url(repo_url)
-    except ValueError as exc:
-        logger.warning(str(exc))
-        return []
+    return sources.clone_git_repo(repo_url, max_git_files=MAX_GIT_FILES, max_git_file_bytes=MAX_GIT_FILE_BYTES)
 
-    configs: List[str] = []
-    files_read = 0
-    with tempfile.TemporaryDirectory() as tmpdir:
-        res = subprocess.run(
-            ["git", "clone", "--depth", "1", "--single-branch", "--no-tags", "--quiet", clean_url, tmpdir],
-            capture_output=True,
-            text=True,
-            timeout=90,
-            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
-        )
-        if res.returncode != 0:
-            logger.warning(f"Failed to clone {clean_url}: {res.stderr.strip()[:160]}")
-            return []
+async def _fetch_once(session: aiohttp.ClientSession, url: str, cache_entry: Optional[dict] = None) -> Tuple[bool, str, int, Dict[str, str]]:
+    return await sources.fetch_once(session, url, cache_entry, fetch_timeout=FETCH_TIMEOUT, max_source_bytes=MAX_SOURCE_BYTES)
 
-        for root, dirs, files in os.walk(tmpdir):
-            dirs[:] = [d for d in dirs if not d.startswith(".") and d != "__pycache__"]
-            for fname in sorted(files):
-                if not fname.lower().endswith((".txt", ".md", ".yaml", ".yml")):
-                    continue
-                if files_read >= MAX_GIT_FILES:
-                    logger.warning(f"Git source {clean_url}: file limit reached ({MAX_GIT_FILES})")
-                    break
-                fpath = os.path.join(root, fname)
-                try:
-                    if os.path.getsize(fpath) > MAX_GIT_FILE_BYTES:
-                        continue
-                    with open(fpath, "r", encoding="utf-8", errors="ignore") as f:
-                        text = f.read(MAX_GIT_FILE_BYTES)
-                except OSError:
-                    continue
-                files_read += 1
-                configs.extend(extract_links(text))
-            if files_read >= MAX_GIT_FILES:
-                break
+async def fetch_source(session: aiohttp.ClientSession, url: str, cache_entry: Optional[dict] = None) -> Tuple[List[str], Optional[dict]]:
+    return await sources.fetch_source(session, url, cache_entry, fetch_attempts=FETCH_ATTEMPTS, fetch_once_fn=_fetch_once, clone_git_fn=_clone_git_repo)
 
-    logger.info(f" -> Found {len(configs)} configs from Git repo: {clean_url}")
-    return configs
+async def probe_node(node: dict, timeout: Optional[float] = None) -> Optional[float]:
+    return await prober.probe_node(node, timeout, tcp_timeout=TIMEOUT, quic_timeout=QUIC_TIMEOUT, check_tcp_fn=_check_tcp, check_quic_fn=_check_quic)
 
+async def check_connectivity(node: dict, timeout: Optional[float] = None) -> bool:
+    return await probe_node(node, timeout) is not None
 
-def _decode_base64(text: str) -> Optional[str]:
-    compact = re.sub(r"\s+", "", text)
-    if not compact or len(compact) < 16:
-        return None
-    padded = compact + "=" * (-len(compact) % 4)
-    for decoder in (base64.b64decode, base64.urlsafe_b64decode):
-        try:
-            raw = decoder(padded)
-            decoded = raw.decode("utf-8", errors="ignore")
-        except (binascii.Error, ValueError):
-            continue
-        if "://" in decoded:
-            return decoded
-    return None
+async def verify_node(node: dict, semaphore: asyncio.Semaphore) -> Optional[float]:
+    return await prober.verify_node(node, semaphore, attempts=CHECK_ATTEMPTS, probe_fn=probe_node)
 
+async def probe_nodes_dedup(nodes: List[dict], semaphore: asyncio.Semaphore) -> Tuple[List[dict], List[dict]]:
+    return await prober.probe_nodes_dedup(nodes, semaphore, verify_fn=verify_node)
 
-def extract_links(body: str) -> List[str]:
-    """Extracts supported links from raw text or a base64 subscription body."""
-    body = body.strip()
-    if not body:
-        return []
-
-    links = LINK_REGEX.findall(body)
-    if not links:
-        decoded = _decode_base64(body)
-        if decoded:
-            links = LINK_REGEX.findall(decoded)
-
-    cleaned: List[str] = []
-    seen = set()
-    for link in links:
-        # Some sources embed links in HTML/markdown attributes ("&amp;").
-        link = html.unescape(link).strip().rstrip(",;")
-        if link in seen:
-            continue
-        seen.add(link)
-        cleaned.append(link)
-    return cleaned
-
-
-def _looks_like_html(body: str) -> bool:
-    head = body[:1024].lower()
-    return "<html" in head or "<!doctype html" in head
-
-
-def _header_value(headers: Dict[str, str], name: str) -> Optional[str]:
-    for key, value in headers.items():
-        if key.lower() == name.lower():
-            return value
-    return None
-
-
-async def _fetch_once(
-    session: aiohttp.ClientSession,
-    url: str,
-    cache_entry: Optional[dict] = None,
-) -> Tuple[bool, str, int, Dict[str, str]]:
-    headers: Dict[str, str] = {}
-    if cache_entry:
-        etag = _header_value(cache_entry, "etag")
-        last_modified = _header_value(cache_entry, "last_modified")
-        if etag:
-            headers["If-None-Match"] = etag
-        if last_modified:
-            headers["If-Modified-Since"] = last_modified
-
-    try:
-        async with session.get(
-            url,
-            headers=headers or None,
-            timeout=aiohttp.ClientTimeout(total=FETCH_TIMEOUT),
-        ) as resp:
-            if resp.status == 304:
-                return False, "", 304, dict(resp.headers)
-            if resp.status != 200:
-                retryable = resp.status == 429 or resp.status >= 500
-                logger.warning(f"Failed to fetch {url}: HTTP {resp.status}")
-                return retryable, "", resp.status, {}
-            chunks: List[bytes] = []
-            total = 0
-            truncated = False
-            async for chunk in resp.content.iter_chunked(65536):
-                remaining = MAX_SOURCE_BYTES - total
-                if len(chunk) > remaining:
-                    chunks.append(chunk[:remaining])
-                    truncated = True
-                    break
-                chunks.append(chunk)
-                total += len(chunk)
-            if truncated:
-                logger.warning(f"Source {url} exceeds {MAX_SOURCE_BYTES} bytes; truncating")
-            raw = b"".join(chunks)
-            return True, raw.decode(resp.charset or "utf-8", errors="ignore"), 200, dict(resp.headers)
-    except Exception as exc:
-        logger.warning(f"Error fetching {url}: {type(exc).__name__}: {exc}")
-        return True, "", 0, {}
-
-
-async def fetch_source(
-    session: aiohttp.ClientSession,
-    url: str,
-    cache_entry: Optional[dict] = None,
-) -> Tuple[List[str], Optional[dict]]:
-    """Fetches a URL with retries, conditional caching and link extraction."""
-    url = url.strip()
-    if not url or url.startswith("#"):
-        return [], None
-
-    if url.startswith("git+") or (url.endswith(".git") and ("gitlab.com" in url or "github.com" in url)):
-        logger.info(f"Cloning Git source: {url}")
-        return await asyncio.to_thread(_clone_git_repo, url), None
-
-    logger.info(f"Downloading source: {url}")
-    cached_links = cache_entry.get("links", []) if cache_entry else []
-    body = ""
-    response_headers: Dict[str, str] = {}
-    status = 0
-
-    for attempt in range(1, FETCH_ATTEMPTS + 1):
-        retryable, body, status, response_headers = await _fetch_once(
-            session, url, cache_entry if attempt == 1 else None
-        )
-        if status == 304 and cached_links:
-            logger.info(f" -> Not modified, using cached links ({len(cached_links)})")
-            updated = dict(cache_entry or {})
-            updated["fetched_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
-            return list(cached_links), updated
-        if status == 304:
-            continue
-        if body:
-            break
-        if not retryable or attempt == FETCH_ATTEMPTS:
-            break
-        await asyncio.sleep(min(2 ** attempt, 8))
-
-    if not body:
-        if cached_links:
-            logger.warning(f"Fetch failed for {url}; using {len(cached_links)} cached links")
-            return list(cached_links), cache_entry
-        return [], None
-
-    if _looks_like_html(body) and not LINK_REGEX.search(body):
-        logger.warning(f"Skipping HTML page from {url}")
-        return [], None
-
-    configs = extract_links(body)
-    entry = {
-        "etag": _header_value(response_headers, "ETag"),
-        "last_modified": _header_value(response_headers, "Last-Modified"),
-        "fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "links": configs,
-    }
-    logger.info(f" -> Found {len(configs)} configs from {url}")
-    return configs, entry
-
-
-def format_link(node: dict) -> str:
-    """Rebuilds the link, removing deprecated TLS flags and adding `pcs`.
-
-    New Xray-core (and INCY v3.7.9+) reject `allowInsecure`/`insecure`:
-    - CA-valid TLS nodes need neither flag;
-    - self-signed TLS nodes are pinned with `pcs=<sha256>`;
-    - Reality works without insecure flags;
-    - Hysteria2 keeps its own `insecure` parameter.
-    """
-    base_link = node["link"].partition("#")[0]
-    scheme, _, rest = base_link.partition("://")
-    location, separator, query = rest.partition("?")
-    pairs = urllib.parse.parse_qsl(query, keep_blank_values=True) if separator else []
-
-    if node["scheme"] in ("vless", "trojan"):
-        pairs = [
-            (key, value)
-            for key, value in pairs
-            if key.lower() not in ("insecure", "allowinsecure", "pcs")
-        ]
-        if node.get("security") == "tls" and node.get("tls_cert_sha256"):
-            pairs.append(("pcs", node["tls_cert_sha256"]))
-    else:
-        pairs = [
-            (key, value)
-            for key, value in pairs
-            if key.lower() not in ("insecure", "allowinsecure", "pinsha256", "pcs")
-        ]
-        if node.get("tls_cert_sha256"):
-            pairs.append(("pinSHA256", node["tls_cert_sha256"]))
-
-    rebuilt = f"{node['scheme']}://{location}"
-    if pairs:
-        rebuilt += "?" + urllib.parse.urlencode(pairs)
-    return f"{rebuilt}#{urllib.parse.quote(node['remark'], safe='')}"
-
-
-def read_previous_count(path: str) -> int:
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return sum(1 for line in f if line.strip())
-    except FileNotFoundError:
-        return 0
-
-
-def load_previous_stats(path: str) -> dict:
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        return data if isinstance(data, dict) else {}
-    except (FileNotFoundError, ValueError, OSError):
-        return {}
-
-
-def enforce_guard(
-    alive: int,
-    previous: int,
-    min_alive: int = MIN_ALIVE,
-    max_drop: float = MAX_DROP_RATIO,
-    protocol_counts: Optional[Dict[str, int]] = None,
-    previous_protocols: Optional[Dict[str, int]] = None,
-    protocol_min: int = PROTOCOL_MIN_ALIVE,
-    protocol_max_drop: float = PROTOCOL_MAX_DROP,
-    allow_baseline_reset: bool = False,
-) -> None:
-    """Refuses to publish an empty, collapsed or protocol-degraded subscription."""
-    if alive < min_alive:
-        raise GuardError(f"only {alive} alive nodes (< MIN_ALIVE={min_alive})")
-
-    if allow_baseline_reset:
-        return
-
-    if previous and alive < previous * (1 - max_drop):
-        raise GuardError(
-            f"alive nodes dropped from {previous} to {alive} "
-            f"(> {int(max_drop * 100)}% loss)"
-        )
-
-    for protocol, previous_count in (previous_protocols or {}).items():
-        if previous_count <= 0:
-            continue
-        current = (protocol_counts or {}).get(protocol, 0)
-        if current == 0 and (previous_count >= protocol_min or protocol == "vless"):
-            raise GuardError(f"{protocol} disappeared completely (was {previous_count})")
-        if previous_count < protocol_min:
-            continue
-        if current < previous_count * (1 - protocol_max_drop):
-            raise GuardError(
-                f"{protocol} dropped from {previous_count} to {current} "
-                f"(> {int(protocol_max_drop * 100)}% loss)"
-            )
-
-
-def cap_per_endpoint(nodes: List[dict], limit: int = MAX_PER_ENDPOINT) -> List[dict]:
-    """Keeps a few alternative credentials per server to avoid subscription spam."""
-    capped: List[dict] = []
-    counts: Dict[tuple, int] = {}
-    for node in nodes:
-        endpoint = (node["scheme"], node["host"].lower(), node["port"], node["sni"].lower())
-        if counts.get(endpoint, 0) >= limit:
-            continue
-        counts[endpoint] = counts.get(endpoint, 0) + 1
-        capped.append(node)
-    return capped
-
-
-MULTI_LABEL_SUFFIXES = {
-    "co.uk", "org.uk", "ac.uk", "com.au", "net.au", "org.au", "co.jp", "ne.jp",
-    "or.jp", "co.kr", "or.kr", "com.br", "com.tr", "co.in", "com.cn", "com.tw",
-    "com.sg", "co.id", "co.nz", "co.za", "com.mx", "com.ar", "com.hk", "com.my",
-    "com.ph", "com.vn", "co.th",
-}
-
-
-def _subnet_key(node: dict) -> Optional[str]:
-    try:
-        address = ipaddress.ip_address(node["host"])
-    except ValueError:
-        return None
-    prefix = 24 if address.version == 4 else 48
-    return str(ipaddress.ip_network(f"{address}/{prefix}", strict=False))
-
-
-def _domain_key(node: dict) -> Optional[str]:
-    host = node["host"].lower().rstrip(".")
-    try:
-        ipaddress.ip_address(host)
-        return None
-    except ValueError:
-        pass
-    labels = host.split(".")
-    if len(labels) < 2:
-        return host
-    if len(labels) >= 3 and ".".join(labels[-2:]) in MULTI_LABEL_SUFFIXES:
-        return ".".join(labels[-3:])
-    return ".".join(labels[-2:])
-
+def cap_per_endpoint(nodes: List[dict], limit: Optional[int] = None) -> List[dict]:
+    return prober.cap_per_endpoint(nodes, MAX_PER_ENDPOINT if limit is None else limit)
 
 def cap_published_endpoints(nodes: List[dict]) -> Tuple[List[dict], int]:
-    """Publishes one (usually the fastest) variant per host:port."""
-    return _cap_by_key(
-        nodes,
-        lambda n: (n["scheme"], n["host"].lower(), n["port"]),
-        PUBLISH_PER_ENDPOINT,
-    )
-
-
-def _cap_by_key(nodes: List[dict], key_fn, limit: int) -> Tuple[List[dict], int]:
-    kept: List[dict] = []
-    counts: Dict[str, int] = {}
-    for node in nodes:
-        key = key_fn(node)
-        if key is None:
-            kept.append(node)
-            continue
-        if counts.get(key, 0) >= limit:
-            continue
-        counts[key] = counts.get(key, 0) + 1
-        kept.append(node)
-    return kept, len(nodes) - len(kept)
-
-
-def cap_for_diversity(nodes: List[dict]) -> Tuple[List[dict], Dict[str, int]]:
-    """Limits repeated endpoints, subnets and registrable domains."""
-    kept, endpoint_removed = _cap_by_key(
-        nodes,
-        lambda n: (n["scheme"], n["host"].lower(), n["port"], n["sni"].lower()),
-        MAX_PER_ENDPOINT,
-    )
-    kept, diversity = cap_diversity(kept)
-    return kept, {"endpoint": endpoint_removed, **diversity}
-
+    return prober.cap_published_endpoints(nodes, PUBLISH_PER_ENDPOINT)
 
 def cap_diversity(nodes: List[dict]) -> Tuple[List[dict], Dict[str, int]]:
-    """Limits repeated subnets and registrable domains after verification."""
-    kept, subnet_removed = _cap_by_key(nodes, _subnet_key, MAX_PER_SUBNET)
-    kept, domain_removed = _cap_by_key(kept, _domain_key, MAX_PER_DOMAIN)
-    return kept, {"subnet": subnet_removed, "domain": domain_removed}
+    return prober.cap_diversity(nodes, max_per_subnet=MAX_PER_SUBNET, max_per_domain=MAX_PER_DOMAIN)
 
-
-def load_source_health(path: str) -> dict:
-    try:
-        with open(path, "r", encoding="utf-8") as handle:
-            data = json.load(handle)
-        if isinstance(data, dict) and isinstance(data.get("sources"), dict):
-            return data
-    except (FileNotFoundError, ValueError, OSError):
-        pass
-    return {"updated_at": None, "sources": {}}
-
-
-def load_source_cache(path: str) -> dict:
-    try:
-        with open(path, "r", encoding="utf-8") as handle:
-            data = json.load(handle)
-        if isinstance(data, dict) and isinstance(data.get("sources"), dict):
-            return data
-    except (FileNotFoundError, ValueError, OSError):
-        pass
-    return {"updated_at": None, "sources": {}}
-
-
-def _parse_datetime(value: object) -> Optional[datetime]:
-    if not isinstance(value, str) or not value:
-        return None
-    try:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
-    except ValueError:
-        return None
-
-
-def _e2e_cache_status(entry: dict, now: datetime, compatible: bool = True) -> str:
-    last_attempt = _parse_datetime(entry.get("last_e2e_at"))
-    if not last_attempt or last_attempt > now:
-        return "fresh"
-    ok = bool(entry.get("last_e2e_ok"))
-    ttl = E2E_CACHE_MINUTES if ok else E2E_FAILURE_CACHE_MINUTES
-    if ttl <= 0 or (now - last_attempt).total_seconds() > ttl * 60:
-        return "fresh"
-    if ok and compatible:
-        return "success"
-    if not ok:
-        return "failed"
-    return "fresh"
-
-
-def _cache_is_fresh(entry: dict, now: datetime) -> bool:
-    return _e2e_cache_status(entry, now) == "success"
-
-
-def select_active_sources(urls: List[str], health: dict, now: datetime) -> Tuple[List[str], List[str]]:
-    active: List[str] = []
-    skipped: List[str] = []
-    for url in urls:
-        entry = health.get("sources", {}).get(url, {})
-        until = _parse_datetime(entry.get("quarantined_until"))
-        if until and until > now:
-            skipped.append(url)
-        else:
-            active.append(url)
-    return active, skipped
-
+def cap_for_diversity(nodes: List[dict]) -> Tuple[List[dict], Dict[str, int]]:
+    return prober.cap_for_diversity(nodes, max_per_endpoint=MAX_PER_ENDPOINT, max_per_subnet=MAX_PER_SUBNET, max_per_domain=MAX_PER_DOMAIN)
 
 def update_source_health(health: dict, urls: List[str], source_stats: Dict[str, dict], now: datetime) -> dict:
-    """Updates consecutive failure counters and quarantines useless sources."""
-    old_sources = health.get("sources", {})
-    sources: Dict[str, dict] = {}
-    for url in urls:
-        old = old_sources.get(url, {})
-        stat = source_stats.get(url, {})
-        if stat.get("active") is False:
-            sources[url] = old
-            continue
+    return sources.update_source_health(health, urls, source_stats, now, failure_threshold=SOURCE_FAILURE_THRESHOLD, quarantine_hours=SOURCE_QUARANTINE_HOURS)
 
-        failures = int(old.get("consecutive_failures", 0))
-        raw = int(stat.get("raw", 0))
-        unique = int(stat.get("unique", 0))
-        alive = int(stat.get("alive", 0))
+def _e2e_cache_status(entry: dict, now: datetime, compatible: bool = True) -> str:
+    return exporter.e2e_cache_status(entry, now, compatible, cache_minutes=E2E_CACHE_MINUTES, failure_cache_minutes=E2E_FAILURE_CACHE_MINUTES)
 
-        if alive > 0:
-            failures = 0
-            quarantined_until = None
-        else:
-            failures += 1
-            quarantined_until = old.get("quarantined_until")
-            if failures >= SOURCE_FAILURE_THRESHOLD:
-                quarantined_until = (now + timedelta(hours=SOURCE_QUARANTINE_HOURS)).isoformat(
-                    timespec="seconds"
-                )
+def _cache_is_fresh(entry: dict, now: datetime) -> bool:
+    return exporter.cache_is_fresh(entry, now, cache_minutes=E2E_CACHE_MINUTES, failure_cache_minutes=E2E_FAILURE_CACHE_MINUTES)
 
-        sources[url] = {
-            "consecutive_failures": failures,
-            "last_raw": raw,
-            "last_unique": unique,
-            "last_alive": alive,
-            "last_checked_at": now.isoformat(timespec="seconds"),
-            "quarantined_until": quarantined_until,
-        }
+def enforce_guard(alive: int, previous: int, min_alive: int = MIN_ALIVE, max_drop: float = MAX_DROP_RATIO, protocol_counts: Optional[Dict[str, int]] = None, previous_protocols: Optional[Dict[str, int]] = None, protocol_min: int = PROTOCOL_MIN_ALIVE, protocol_max_drop: float = PROTOCOL_MAX_DROP, allow_baseline_reset: bool = False) -> None:
+    exporter.enforce_guard(alive, previous, min_alive=min_alive, max_drop=max_drop, protocol_counts=protocol_counts, previous_protocols=previous_protocols, protocol_min=protocol_min, protocol_max_drop=protocol_max_drop, allow_baseline_reset=allow_baseline_reset)
 
-    return {"updated_at": now.isoformat(timespec="seconds"), "sources": sources}
-
-
-def node_history_id(node: dict) -> str:
-    """Stable, non-reversible ID for node history (credentials are not stored)."""
-    return hashlib.sha256(node["dedup_key"].encode("utf-8")).hexdigest()[:32]
-
-
-def load_history_list(path: str) -> List[dict]:
-    try:
-        with open(path, "r", encoding="utf-8") as handle:
-            data = json.load(handle)
-        return [entry for entry in data if isinstance(entry, dict)] if isinstance(data, list) else []
-    except (FileNotFoundError, ValueError, OSError):
-        return []
-
-
-def load_node_history(path: str) -> dict:
-    try:
-        with open(path, "r", encoding="utf-8") as handle:
-            data = json.load(handle)
-        if isinstance(data, dict) and isinstance(data.get("nodes"), dict):
-            return data
-    except (FileNotFoundError, ValueError, OSError):
-        pass
-    return {"updated_at": None, "nodes": {}}
-
-
-def update_node_history(
-    state: dict,
-    tested_nodes: List[dict],
-    verified_nodes: List[dict],
-    now: datetime,
-) -> Tuple[dict, set, Dict[str, int]]:
-    """Implements the 2-of-3 stability policy and returns publishable node IDs."""
-    raw_nodes = state.get("nodes")
-    old_nodes: Dict[str, dict] = raw_nodes if isinstance(raw_nodes, dict) else {}
-    nodes: Dict[str, dict] = {str(key): dict(value) for key, value in old_nodes.items()}
-    bootstrap = not nodes
-
-    tested_ids = {node_history_id(node) for node in tested_nodes}
-    verified_ids = {node_history_id(node) for node in verified_nodes}
-    timestamp = now.isoformat(timespec="seconds")
-
-    for node in verified_nodes:
-        node_id = node_history_id(node)
-        entry = nodes.setdefault(
-            node_id,
-            {"recent": [], "successes": 0, "failures": 0, "first_seen": timestamp},
-        )
-        recent = [True, True] if bootstrap else [*entry.get("recent", []), True]
-        entry["recent"] = recent[-NODE_RECENT_WINDOW:]
-        entry["successes"] = int(entry.get("successes", 0)) + 1
-        entry["streak"] = int(entry.get("streak", 0)) + 1
-        entry["last_seen"] = timestamp
-        entry["last_success"] = timestamp
-        sample_ms = node.get("e2e_ms") if node.get("e2e_ms") is not None else node.get("latency_ms")
-        if isinstance(sample_ms, (int, float)):
-            prev_ema = entry.get("ema_ms")
-            if isinstance(prev_ema, (int, float)):
-                entry["ema_ms"] = round(0.6 * float(sample_ms) + 0.4 * float(prev_ema), 1)
-            else:
-                entry["ema_ms"] = round(float(sample_ms), 1)
-            node["ema_ms"] = entry["ema_ms"]
-        node["streak"] = entry["streak"]
-        if node.get("last_verified_at"):
-            entry["last_verified_at"] = node["last_verified_at"]
-        else:
-            entry.pop("last_verified_at", None)
-        if node.get("e2e") in ("verified", "cached"):
-            entry["last_e2e_at"] = node.get("last_e2e_at") or node.get("last_verified_at") or timestamp
-            entry["last_e2e_ok"] = True
-            entry["last_e2e_ms"] = node.get("e2e_ms")
-        else:
-            entry.pop("last_e2e_at", None)
-            entry.pop("last_e2e_ok", None)
-            entry.pop("last_e2e_ms", None)
-        entry["tls_mode"] = node.get("tls_mode")
-        entry["tls_cert_sha256"] = node.get("tls_cert_sha256")
-        nodes[node_id] = entry
-
-    tested_map = {node_history_id(node): node for node in tested_nodes}
-    for node_id in tested_ids - verified_ids:
-        failed_entry = nodes.get(node_id)
-        if failed_entry is None:
-            continue
-        failed_node = tested_map.get(node_id, {})
-        failed_entry["recent"] = [*failed_entry.get("recent", []), False][-NODE_RECENT_WINDOW:]
-        failed_entry["failures"] = int(failed_entry.get("failures", 0)) + 1
-        failed_entry["streak"] = 0
-        failed_entry["last_seen"] = timestamp
-        failed_entry.pop("last_verified_at", None)
-        if failed_node.get("last_e2e_at") and failed_node.get("e2e") in ("failed", "cached_failed"):
-            failed_entry["last_e2e_at"] = failed_node["last_e2e_at"]
-            failed_entry["last_e2e_ok"] = False
-        else:
-            failed_entry.pop("last_e2e_at", None)
-            failed_entry.pop("last_e2e_ok", None)
-
-    cutoff = now - timedelta(days=NODE_HISTORY_TTL_DAYS)
-    pruned = 0
-    for node_id, entry in list(nodes.items()):
-        last_seen = _parse_datetime(entry.get("last_seen"))
-        if last_seen and last_seen < cutoff:
-            del nodes[node_id]
-            pruned += 1
-
-    if len(nodes) > MAX_NODE_HISTORY:
-        newest = sorted(
-            nodes.items(),
-            key=lambda item: item[1].get("last_seen") or "",
-            reverse=True,
-        )[:MAX_NODE_HISTORY]
-        pruned += len(nodes) - len(newest)
-        nodes = dict(newest)
-
-    eligible: set = set()
-    for node_id in verified_ids:
-        entry = nodes.get(node_id, {})
-        recent = entry.get("recent", [])[-NODE_RECENT_WINDOW:]
-        if sum(bool(result) for result in recent) >= NODE_MIN_RECENT_SUCCESS:
-            eligible.add(node_id)
-
-    stats = {
-        "tracked": len(nodes),
-        "bootstrap": int(bootstrap),
-        "verified": len(verified_ids),
-        "eligible": len(eligible),
-        "held_back": len(verified_ids - eligible),
-        "pruned": pruned,
-    }
-    return {"updated_at": timestamp, "nodes": nodes}, eligible, stats
-
+def update_node_history(state: dict, tested_nodes: List[dict], verified_nodes: List[dict], now: datetime) -> Tuple[dict, set, Dict[str, object]]:
+    return exporter.update_node_history(state, tested_nodes, verified_nodes, now, recent_window=NODE_RECENT_WINDOW, min_recent_success=NODE_MIN_RECENT_SUCCESS, ttl_days=NODE_HISTORY_TTL_DAYS, max_entries=MAX_NODE_HISTORY)
 
 def build_meta(alive_counts: Dict[str, int], total: int, now: datetime) -> dict:
-    public_base = os.getenv("PUBLIC_BASE_URL", "").strip().rstrip("/")
-    sub_key = os.getenv("SUB_KEY", "").strip("/")
-    if public_base:
-        prefix = f"{public_base}/{sub_key}" if sub_key else public_base
-        subscriptions = {
-            "all": f"{prefix}/all",
-            "vless": f"{prefix}/vless",
-            "hysteria2": f"{prefix}/hy2",
-        }
-    else:
-        raw_base = (
-            "https://raw.githubusercontent.com/"
-            f"{os.getenv('GITHUB_REPOSITORY', 'BarqDev1/vless-aggregator')}/main"
-        )
-        subscriptions = {
-            "all": f"{raw_base}/all_universal.txt",
-            "vless": f"{raw_base}/vless_universal.txt",
-            "hysteria2": f"{raw_base}/hysteria2.txt",
-        }
-    return {
-        "profile_title": PROFILE_TITLE,
-        "profile_update_interval": PROFILE_UPDATE_INTERVAL,
-        "support_url": SUPPORT_URL,
-        "home_url": HOME_URL,
-        "subscription_userinfo": None,
-        "updated_at": now.isoformat(timespec="seconds"),
-        "counts": {"total": total, **dict(sorted(alive_counts.items()))},
-        "subscriptions": subscriptions,
-    }
-
-
-def _percentile(values: List[float], quantile: float) -> Optional[float]:
-    if not values:
-        return None
-    ordered = sorted(values)
-    index = min(len(ordered) - 1, max(0, round((quantile / 100) * (len(ordered) - 1))))
-    return round(ordered[index], 1)
-
-
-def latency_summary(nodes: List[dict]) -> Dict[str, float]:
-    values: List[float] = []
-    for node in nodes:
-        value = node.get("e2e_ms") if node.get("e2e_ms") is not None else node.get("latency_ms")
-        if isinstance(value, (int, float)):
-            values.append(float(value))
-    if not values:
-        return {}
-    return {
-        "p50": _percentile(values, 50) or 0.0,
-        "p90": _percentile(values, 90) or 0.0,
-        "min": round(min(values), 1),
-        "max": round(max(values), 1),
-    }
-
-
-def write_atomic(path: str, lines: Iterable[str]) -> None:
-    tmp = f"{path}.tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        f.write("\n".join(lines) + "\n")
-    os.replace(tmp, path)
-
-
-def write_json_atomic(path: str, payload) -> None:
-    tmp = f"{path}.tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2, sort_keys=True)
-        f.write("\n")
-    os.replace(tmp, path)
-
-
-def _load_sources(path: str) -> List[str]:
-    if not os.path.exists(path):
-        logger.error(f"Sources file '{path}' not found!")
-        return []
-    with open(path, "r", encoding="utf-8") as f:
-        urls = [
-            line.strip()
-            for line in f
-            if line.strip() and not line.strip().startswith("#")
-        ]
-    # Preserve order while removing duplicates.
-    return list(dict.fromkeys(urls))
+    return exporter.build_meta(alive_counts, total, now, profile_title=PROFILE_TITLE, profile_update_interval=PROFILE_UPDATE_INTERVAL, support_url=SUPPORT_URL, home_url=HOME_URL)
 
 
 async def main() -> int:
-    started = time.monotonic()
-    now = datetime.now(timezone.utc)
-
+    started, now = time.monotonic(), datetime.now(timezone.utc)
     source_urls = _load_sources(SOURCES_FILE)
     if not source_urls:
-        logger.error("No usable sources found.")
         return 2
-
     xray_bin = XRAY_BIN
     if E2E_VERIFY:
         try:
             xray_bin = e2e.ensure_binaries(XRAY_BIN)
         except e2e.E2ERuntimeError as exc:
-            logger.error(f"E2E verification is enabled but unusable: {exc}")
+            logger.error(f"E2E verification unusable: {exc}")
             return 2
-
-    if not HAS_AIOQUIC:
-        logger.error("aioquic is not installed: Hysteria2 nodes cannot be verified and will be dropped.")
 
     health = load_source_health(SOURCE_HEALTH_FILE)
     node_history_state = load_node_history(NODE_HISTORY_FILE)
     active_urls, skipped_urls = select_active_sources(source_urls, health, now)
     if not active_urls:
-        logger.warning("All sources are quarantined; retrying all sources once.")
-        active_urls = list(source_urls)
-        skipped_urls = []
+        active_urls, skipped_urls = list(source_urls), []
     active_set = set(active_urls)
-    logger.info(
-        f"Loaded {len(source_urls)} sources: {len(active_urls)} active, "
-        f"{len(skipped_urls)} quarantined."
-    )
-
     source_cache = load_source_cache(SOURCE_CACHE_FILE)
     fetch_sem = asyncio.Semaphore(FETCH_CONCURRENCY)
+
     async with aiohttp.ClientSession(headers=DEFAULT_HEADERS) as session:
-        async def fetch_limited(url: str) -> Tuple[str, List[str], Optional[dict]]:
+        async def _fetch_lim(u: str) -> Tuple[str, List[str], Optional[dict]]:
             async with fetch_sem:
-                links, entry = await fetch_source(
-                    session, url, source_cache.get("sources", {}).get(url)
-                )
-                return url, links, entry
+                links, entry = await fetch_source(session, u, source_cache.get("sources", {}).get(u))
+                return u, links, entry
 
-        results = await asyncio.gather(*[fetch_limited(url) for url in active_urls])
+        results = await asyncio.gather(*[_fetch_lim(u) for u in active_urls])
 
-    raw_by_source: Dict[str, int] = {url: 0 for url in source_urls}
+    raw_by_source: Dict[str, int] = {u: 0 for u in source_urls}
     fetched_ok = 0
-    cached_sources: Dict[str, dict] = dict(source_cache.get("sources", {}))
+    cached_sources = {u: e for u, e in source_cache.get("sources", {}).items() if u in set(source_urls)}
     for url, links, entry in results:
         raw_by_source[url] = len(links)
-        if links:
-            fetched_ok += 1
+        fetched_ok += int(bool(links))
         if entry:
             cached_sources[url] = entry
-    cached_sources = {
-        url: entry for url, entry in cached_sources.items() if url in set(source_urls)
-    }
-
     raw_total = sum(raw_by_source.values())
-    logger.info(f"Total raw links collected: {raw_total} (sources with data: {fetched_ok})")
     if not raw_total:
-        logger.error("No links collected from any source; keeping previous files.")
         return 2
 
     by_key: Dict[str, dict] = {}
-    rejected = 0
+    rejected, poisoned_sni = 0, 0
     for url, links, _ in results:
         for raw in links:
-            parsed = parse_vpn_link(raw)
+            parsed = parse_vpn_link(raw, MAX_REMARK_LEN)
             if not parsed:
                 rejected += 1
-                continue
-            existing = by_key.get(parsed["dedup_key"])
-            if existing:
+            elif FILTER_POISONED_SNI and quality.is_poisoned_sni(parsed):
+                poisoned_sni += 1
+            elif existing := by_key.get(parsed["dedup_key"]):
                 existing["sources"].add(url)
-                continue
-            parsed["sources"] = {url}
-            parsed["latency_ms"] = None
-            parsed["e2e"] = "disabled"
-            by_key[parsed["dedup_key"]] = parsed
+            else:
+                parsed.update({"sources": {url}, "latency_ms": None, "e2e": "disabled"})
+                by_key[parsed["dedup_key"]] = parsed
 
     parsed_nodes = list(by_key.values())
-    logger.info(f"Unique valid nodes: {len(parsed_nodes)} (rejected invalid: {rejected})")
+    logger.info(f"Raw: {raw_total}, unique valid: {len(parsed_nodes)} (rejected: {rejected}, poisoned_sni: {poisoned_sni})")
     if not parsed_nodes:
-        logger.error("No valid nodes parsed; keeping previous files.")
         return 2
 
     ru_filter_stats: Dict[str, int] = {}
     if ONLY_RU_IPS:
         try:
             async with aiohttp.ClientSession(headers=DEFAULT_HEADERS) as geo_session:
-                ru_matcher = await geoip.load_ru_matcher(
-                    geo_session,
-                    RU_GEOIP_CACHE_FILE,
-                    now=now,
-                    timeout=FETCH_TIMEOUT,
-                )
+                ru_matcher = await geoip.load_ru_matcher(geo_session, RU_GEOIP_CACHE_FILE, now=now, timeout=FETCH_TIMEOUT)
         except geoip.GeoIPRuntimeError as exc:
-            logger.error(f"RU IP filter enabled but GeoIP data unavailable: {exc}")
+            logger.error(f"RU IP filter unavailable: {exc}")
             return 2
-
-        parsed_nodes, ru_filter_stats = await geoip.filter_ru_nodes(
-            parsed_nodes,
-            ru_matcher,
-            concurrency=DNS_CONCURRENCY,
-            timeout=DNS_TIMEOUT,
-        )
-        logger.info(
-            f"RU IP filter: kept {ru_filter_stats['kept']} / {ru_filter_stats['checked']} nodes "
-            f"(non_ru={ru_filter_stats['non_ru']}, unresolved={ru_filter_stats['unresolved']}, "
-            f"non_public={ru_filter_stats['non_public']}, hosts={ru_filter_stats['unique_hosts']})"
-        )
+        parsed_nodes, ru_filter_stats = await geoip.filter_ru_nodes(parsed_nodes, ru_matcher, concurrency=DNS_CONCURRENCY, timeout=DNS_TIMEOUT)
         if not parsed_nodes:
-            logger.error("No nodes with a real Russian IP found; keeping previous files.")
             return 2
 
-    unique_by_source: Dict[str, int] = {url: 0 for url in source_urls}
-    for node in parsed_nodes:
-        for url in node["sources"]:
-            unique_by_source[url] = unique_by_source.get(url, 0) + 1
+    unique_by_source: Dict[str, int] = {u: 0 for u in source_urls}
+    for n in parsed_nodes:
+        for u in n["sources"]:
+            unique_by_source[u] = unique_by_source.get(u, 0) + 1
 
     semaphore = asyncio.Semaphore(MAX_CONCURRENT_PINGS)
-    logger.info(
-        f"Checking reachability for {len(parsed_nodes)} nodes (workers={MAX_CONCURRENT_PINGS})..."
-    )
     reachable_all, unreachable_nodes = await probe_nodes_dedup(parsed_nodes, semaphore)
-    logger.info(
-        f"Protocol-level reachable nodes: {len(reachable_all)} / {len(parsed_nodes)}"
-    )
-
     candidates = cap_per_endpoint(reachable_all)
-    cap_counts = {
-        "endpoint": len(reachable_all) - len(candidates),
-        "subnet": 0,
-        "domain": 0,
-    }
-    logger.info(
-        f"Candidates after reachable endpoint cap: {len(candidates)} "
-        f"(removed endpoint duplicates: {cap_counts['endpoint']})"
-    )
-
-    candidate_protocols: Dict[str, int] = {}
-    for node in candidates:
-        candidate_protocols[node["scheme"]] = candidate_protocols.get(node["scheme"], 0) + 1
-    if candidate_protocols:
-        logger.info(
-            "Candidate protocols: "
-            + ", ".join(f"{key.upper()}={value}" for key, value in sorted(candidate_protocols.items()))
-        )
-
-    alive_nodes = list(candidates)
-    reachable = len(alive_nodes)
+    cap_counts = {"endpoint": len(reachable_all) - len(candidates), "subnet": 0, "domain": 0}
     tested_nodes = unreachable_nodes + candidates
 
-    cached_nodes: List[dict] = []
-    fresh_nodes: List[dict] = []
-    cached_failures = 0
+    cached_nodes, fresh_nodes, cached_failures = [], [], 0
     history_nodes = node_history_state.get("nodes", {})
-    for node in alive_nodes:
+    for node in candidates:
         entry = history_nodes.get(node_history_id(node), {})
-        tls_mode = entry.get("tls_mode")
-        certificate = entry.get("tls_cert_sha256")
-        cache_compatible = True
-        if node.get("security") == "tls":
-            cache_compatible = tls_mode in ("valid", "pinned") and (
-                tls_mode != "pinned" or bool(certificate)
-            )
+        tls_mode, cert = entry.get("tls_mode"), entry.get("tls_cert_sha256")
+        compat = (tls_mode in ("valid", "pinned") and (tls_mode != "pinned" or bool(cert))) if node.get("security") == "tls" else True
         if node["scheme"] == "hysteria2":
-            cache_compatible = cache_compatible and bool(certificate)
-
-        cache_status = _e2e_cache_status(entry, now, cache_compatible) if E2E_VERIFY else "fresh"
-        if cache_status == "success":
-            node["e2e"] = "cached"
-            node["e2e_ms"] = entry.get("last_e2e_ms")
-            node["last_verified_at"] = entry.get("last_verified_at")
-            node["last_e2e_at"] = entry.get("last_e2e_at")
-            node["last_e2e_ok"] = True
-            node["tls_mode"] = tls_mode
-            node["tls_cert_sha256"] = certificate
+            compat = compat and bool(cert)
+        if REJECT_RU_EXIT and entry.get("exit_country") == "RU":
+            compat = False
+        st = _e2e_cache_status(entry, now, compat) if E2E_VERIFY else "fresh"
+        if st == "success":
+            node.update({"e2e": "cached", "e2e_ms": entry.get("last_e2e_ms"), "last_verified_at": entry.get("last_verified_at"), "last_e2e_at": entry.get("last_e2e_at"), "last_e2e_ok": True, "tls_mode": tls_mode, "tls_cert_sha256": cert, "exit_country": entry.get("exit_country"), "ema_kbps": entry.get("ema_kbps")})
             cached_nodes.append(node)
-        elif cache_status == "failed":
+        elif st == "failed":
             cached_failures += 1
-            node["e2e"] = "cached_failed"
-            node["last_e2e_at"] = entry.get("last_e2e_at")
-            node["last_e2e_ok"] = False
+            node.update({"e2e": "cached_failed", "last_e2e_at": entry.get("last_e2e_at"), "last_e2e_ok": False})
         else:
             fresh_nodes.append(node)
 
-    if E2E_VERIFY:
-        logger.info(
-            f"E2E cache: {len(cached_nodes)} ok, {cached_failures} cached failures, "
-            f"{len(fresh_nodes)} fresh (success TTL={E2E_CACHE_MINUTES:g}m, "
-            f"failure TTL={E2E_FAILURE_CACHE_MINUTES:g}m)."
-        )
-
-    tls_nodes = [
-        node
-        for node in fresh_nodes
-        if node["scheme"] in ("vless", "trojan") and node.get("security") == "tls"
-    ]
-    tls_status = {"valid": 0, "pinned": 0, "failed": 0}
-    if tls_nodes:
-        logger.info(f"Inspecting TLS certificates ({len(tls_nodes)} nodes)...")
-
-        async def _inspect_limited(target: dict) -> Tuple[Optional[str], Optional[str]]:
-            async with semaphore:
-                return await inspect_tls(target)
-
-        tls_checks = await asyncio.gather(*[_inspect_limited(node) for node in tls_nodes])
-        tls_ids = {id(node) for node in tls_nodes}
-        kept_tls: List[dict] = []
-        for node, (mode, fingerprint) in zip(tls_nodes, tls_checks, strict=True):
-            node["tls_mode"] = mode
-            node["tls_cert_sha256"] = fingerprint
-            if mode is None:
-                tls_status["failed"] += 1
-                continue
-            tls_status[mode] += 1
-            kept_tls.append(node)
-        fresh_nodes = [node for node in fresh_nodes if id(node) not in tls_ids] + kept_tls
-        logger.info(
-            f"TLS certificates: CA-valid={tls_status['valid']}, "
-            f"pinned={tls_status['pinned']}, failed={tls_status['failed']}"
-        )
-
-    hy2_without_pin = [
-        node
-        for node in fresh_nodes
-        if node["scheme"] == "hysteria2" and not node.get("tls_cert_sha256")
-    ]
-    if hy2_without_pin:
-        logger.info(f"Dropping {len(hy2_without_pin)} Hysteria2 nodes without a certificate pin")
-        fresh_nodes = [node for node in fresh_nodes if node not in hy2_without_pin]
-
-    e2e_status = {
-        "enabled": E2E_VERIFY,
-        "cached": len(cached_nodes),
-        "cached_failed": cached_failures,
-        "verified": 0,
-        "failed": 0,
-        "unsupported": 0,
-        "duration_sec": 0.0,
-    }
+    fresh_nodes, tls_status = await prober.inspect_tls_batch(fresh_nodes, semaphore, inspect_fn=inspect_tls)
+    fresh_nodes = [n for n in fresh_nodes if not (n["scheme"] == "hysteria2" and not n.get("tls_cert_sha256"))]
+    native_hy2 = bool(hy2_e2e.find_hy2_binary(HY2_BIN))
+    e2e_status: Dict[str, object] = {"enabled": E2E_VERIFY, "cached": len(cached_nodes), "cached_failed": cached_failures, "verified": 0, "failed": 0, "unsupported": 0, "ru_exit_rejected": 0, "slow_rejected": 0, "duration_sec": 0.0}
     if E2E_VERIFY and fresh_nodes:
-        logger.info(
-            f"Running end-to-end verification (workers={E2E_CONCURRENCY}, timeout={E2E_TIMEOUT}s)..."
-        )
-        e2e_started = time.monotonic()
+        t0 = time.monotonic()
         try:
-            e2e_results = await e2e.verify_nodes(
-                fresh_nodes,
-                xray_bin=xray_bin,
-                concurrency=E2E_CONCURRENCY,
-                timeout=E2E_TIMEOUT,
-            )
+            e2e_res = await e2e.verify_nodes(fresh_nodes, xray_bin=xray_bin, concurrency=E2E_CONCURRENCY, timeout=E2E_TIMEOUT, hy2_bin=HY2_BIN)
         except e2e.E2ERuntimeError as exc:
-            logger.error(f"E2E verification failed to run: {exc}")
+            logger.error(f"E2E verification failed: {exc}")
             return 2
+        e2e_status["duration_sec"] = round(time.monotonic() - t0, 1)
+        ts = now.isoformat(timespec="seconds")
+        for n, st, _ in e2e_res:
+            e2e_status[st] = int(e2e_status.get(st, 0)) + 1
+            if n.get("e2e_fail_reason") == "ru_exit":
+                e2e_status["ru_exit_rejected"] = int(e2e_status["ru_exit_rejected"]) + 1
+            elif n.get("e2e_fail_reason") == "slow":
+                e2e_status["slow_rejected"] = int(e2e_status["slow_rejected"]) + 1
+            if st in ("verified", "failed"):
+                n["last_e2e_at"], n["last_e2e_ok"] = ts, (st == "verified")
+            if st == "verified":
+                n["last_verified_at"] = ts
+        fresh_nodes = [n for n in fresh_nodes if n.get("e2e") != "failed"]
+        logger.info(f"E2E fresh: ok={e2e_status['verified']}, fail={e2e_status['failed']} (ru_exit={e2e_status['ru_exit_rejected']}, slow={e2e_status['slow_rejected']}) in {e2e_status['duration_sec']}s")
 
-        e2e_status["duration_sec"] = round(time.monotonic() - e2e_started, 1)
-        for key in ("verified", "failed", "unsupported"):
-            e2e_status[key] = sum(1 for _, status, _ in e2e_results if status == key)
-        e2e_timestamp = now.isoformat(timespec="seconds")
-        for node, status, _ in e2e_results:
-            if status in ("verified", "failed"):
-                node["last_e2e_at"] = e2e_timestamp
-                node["last_e2e_ok"] = status == "verified"
-            if status == "verified":
-                node["last_verified_at"] = e2e_timestamp
-        fresh_nodes = [node for node in fresh_nodes if node.get("e2e") != "failed"]
-        logger.info(
-            f"E2E fresh verified: {e2e_status['verified']}, failed: {e2e_status['failed']}, "
-            f"unsupported: {e2e_status['unsupported']} ({e2e_status['duration_sec']}s)"
-        )
+    verified_nodes = cached_nodes + fresh_nodes
+    prev_stats = load_previous_stats(STATS_OUTPUT)
+    prev_total = int(prev_stats.get("alive") or read_previous_count(ALL_OUTPUT))
+    prev_protos = {p: c for p, c in (prev_stats.get("alive_by_protocol") or {}).items() if p in SUPPORTED_SCHEMES}
+    node_history, eligible_ids, stability_stats = update_node_history(node_history_state, tested_nodes, verified_nodes, now)
+    alive_nodes = [n for n in verified_nodes if node_history_id(n) in eligible_ids]
+    if prev_total and len(alive_nodes) < prev_total * (1 - MAX_DROP_RATIO) and len(verified_nodes) >= prev_total * (1 - MAX_DROP_RATIO):
+        alive_nodes, stability_stats["bypassed"], stability_stats["held_back"] = list(verified_nodes), True, 0
 
-    alive_nodes = cached_nodes + fresh_nodes
-    verified_nodes = list(alive_nodes)
-    previous_stats = load_previous_stats(STATS_OUTPUT)
-    previous_total = int(previous_stats.get("alive") or read_previous_count(ALL_OUTPUT))
-    previous_protocols = {
-        protocol: count
-        for protocol, count in (previous_stats.get("alive_by_protocol") or {}).items()
-        if protocol in SUPPORTED_SCHEMES
-    }
+    alive_nodes.sort(key=lambda n: rank_node_key(n, e2e_enabled=E2E_VERIFY))
+    alive_nodes, pub_removed = cap_published_endpoints(alive_nodes)
+    alive_nodes, div_removed = cap_diversity(alive_nodes)
+    cap_counts.update({"published_endpoint": pub_removed, **div_removed})
 
-    node_history, eligible_ids, stability_stats = update_node_history(
-        node_history_state, tested_nodes, alive_nodes, now
-    )
-    if stability_stats["held_back"]:
-        logger.info(
-            f"Stability filter: {stability_stats['held_back']} verified nodes held back "
-            f"(need {NODE_MIN_RECENT_SUCCESS}/{NODE_RECENT_WINDOW} successes)."
-        )
-    alive_nodes = [
-        node for node in alive_nodes if node_history_id(node) in eligible_ids
-    ]
-    if (
-        previous_total
-        and len(alive_nodes) < previous_total * (1 - MAX_DROP_RATIO)
-        and len(verified_nodes) >= previous_total * (1 - MAX_DROP_RATIO)
-    ):
-        logger.warning(
-            "Stability filter would collapse the subscription "
-            f"({len(alive_nodes)} < {int(previous_total * (1 - MAX_DROP_RATIO))}); "
-            "publishing all currently verified nodes for this run."
-        )
-        alive_nodes = list(verified_nodes)
-        stability_stats["bypassed"] = True
-        stability_stats["held_back"] = 0
+    alive_counts, country_counts, exit_countries = {}, {}, {}
+    alive_by_source: Dict[str, int] = {u: 0 for u in source_urls}
+    for n in alive_nodes:
+        alive_counts[n["scheme"]] = alive_counts.get(n["scheme"], 0) + 1
+        country_counts[n["flag"]] = country_counts.get(n["flag"], 0) + 1
+        if cc := n.get("exit_country"):
+            exit_countries[cc] = exit_countries.get(cc, 0) + 1
+        for u in n["sources"]:
+            alive_by_source[u] = alive_by_source.get(u, 0) + 1
 
-    def latency_value(node: dict) -> Optional[float]:
-        base = node.get("ema_ms")
-        if base is None:
-            if E2E_VERIFY and node.get("e2e") in ("verified", "cached") and node.get("e2e_ms") is not None:
-                base = node["e2e_ms"]
-            else:
-                base = node.get("latency_ms")
-        if base is None:
-            return None
-        if int(node.get("streak") or 0) >= 3:
-            return round(float(base) * 0.85, 1)
-        return float(base)
-
-    alive_nodes.sort(key=lambda node: (latency_value(node) is None, latency_value(node) or 0))
-
-    alive_nodes, published_removed = cap_published_endpoints(alive_nodes)
-    cap_counts["published_endpoint"] = published_removed
-    if published_removed:
-        logger.info(
-            f"Published endpoint cap: removed {published_removed} duplicate variants "
-            f"(PUBLISH_PER_ENDPOINT={PUBLISH_PER_ENDPOINT})."
-        )
-
-    alive_nodes, diversity_removed = cap_diversity(alive_nodes)
-    cap_counts.update(diversity_removed)
-    if diversity_removed["subnet"] or diversity_removed["domain"]:
-        logger.info(
-            "Diversity caps after verification: "
-            f"removed subnet={diversity_removed['subnet']}, "
-            f"domain={diversity_removed['domain']}"
-        )
-
-    alive_counts: Dict[str, int] = {}
-    country_counts: Dict[str, int] = {}
-    alive_by_source: Dict[str, int] = {url: 0 for url in source_urls}
-    for node in alive_nodes:
-        protocol = node["scheme"]
-        alive_counts[protocol] = alive_counts.get(protocol, 0) + 1
-        country_counts[node["flag"]] = country_counts.get(node["flag"], 0) + 1
-        for url in node["sources"]:
-            alive_by_source[url] = alive_by_source.get(url, 0) + 1
-
-    logger.info(f"✅ Total published nodes: {len(alive_nodes)} / {len(candidates)} checked")
-    for protocol, count in sorted(alive_counts.items(), key=lambda item: -item[1]):
-        logger.info(f"  {protocol.upper()}: {count}")
-    logger.info("Top countries:")
-    for flag, count in sorted(country_counts.items(), key=lambda item: -item[1])[:8]:
-        logger.info(f"  {flag}: {count}")
-
-    source_stats: Dict[str, dict] = {}
-    for url in source_urls:
-        entry = health.get("sources", {}).get(url, {})
-        active = url in active_set
-        if active:
-            raw_count = int(raw_by_source.get(url, 0))
-            unique_count = int(unique_by_source.get(url, 0))
-            alive_count = int(alive_by_source.get(url, 0))
-        else:
-            raw_count = int(entry.get("last_raw", 0))
-            unique_count = int(entry.get("last_unique", 0))
-            alive_count = int(entry.get("last_alive", 0))
-        source_stats[url] = {
-            "active": active,
-            "raw": raw_count,
-            "unique": unique_count,
-            "alive": alive_count,
-            "yield": round(alive_count / raw_count, 3) if raw_count else 0.0,
-            "quarantined": bool(
-                (until := _parse_datetime(entry.get("quarantined_until"))) and until > now
-            ),
-        }
-
-    overall_latency = latency_summary(alive_nodes)
-    new_health = update_source_health(health, source_urls, source_stats, now)
-    write_json_atomic(SOURCE_HEALTH_FILE, new_health)
-    write_json_atomic(
-        SOURCE_CACHE_FILE,
-        {
-            "updated_at": now.isoformat(timespec="seconds"),
-            "sources": cached_sources,
-        },
-    )
-
-    history_entries = load_history_list(HISTORY_FILE)
-    history_entries.append(
-        {
-            "timestamp": now.isoformat(timespec="seconds"),
-            "alive": len(alive_nodes),
-            "protocols": dict(sorted(alive_counts.items())),
-            "delta": len(alive_nodes) - previous_total,
-            "reachable": reachable,
-            "e2e_verified": e2e_status["verified"],
-            "e2e_cached": e2e_status["cached"],
-            "e2e_cached_failed": e2e_status["cached_failed"],
-            "e2e_failed": e2e_status["failed"],
-            "latency_p50": overall_latency.get("p50"),
-            "sources_active": len(active_urls),
-            "sources_quarantined": len(skipped_urls),
-            "held_back": stability_stats["held_back"],
-        }
-    )
-    history_entries = history_entries[-HISTORY_MAX_RUNS:]
-    write_json_atomic(HISTORY_FILE, history_entries)
+    source_stats = {u: {"active": (act := u in active_set), "raw": (rc := int(raw_by_source.get(u, 0)) if act else int((ent := health.get("sources", {}).get(u, {})).get("last_raw", 0))), "unique": int(unique_by_source.get(u, 0)) if act else int(ent.get("last_unique", 0)), "alive": (ac := int(alive_by_source.get(u, 0)) if act else int(ent.get("last_alive", 0))), "yield": round(ac / rc, 3) if rc else 0.0, "quarantined": bool((until := _parse_datetime(health.get("sources", {}).get(u, {}).get("quarantined_until"))) and until > now)} for u in source_urls}
+    overall_latency, overall_speed = latency_summary(alive_nodes), speed_summary(alive_nodes)
+    write_json_atomic(SOURCE_HEALTH_FILE, update_source_health(health, source_urls, source_stats, now))
+    write_json_atomic(SOURCE_CACHE_FILE, {"updated_at": now.isoformat(timespec="seconds"), "sources": cached_sources})
+    hist = [*load_history_list(HISTORY_FILE), {"timestamp": now.isoformat(timespec="seconds"), "alive": len(alive_nodes), "protocols": dict(sorted(alive_counts.items())), "delta": len(alive_nodes) - prev_total, "reachable": len(candidates), "e2e_verified": e2e_status["verified"], "e2e_cached": e2e_status["cached"], "e2e_cached_failed": e2e_status["cached_failed"], "e2e_failed": e2e_status["failed"], "latency_p50": overall_latency.get("p50"), "speed_kbps_p50": overall_speed.get("p50"), "sources_active": len(active_urls), "sources_quarantined": len(skipped_urls), "held_back": stability_stats["held_back"]}][-HISTORY_MAX_RUNS:]
+    write_json_atomic(HISTORY_FILE, hist)
     write_json_atomic(NODE_HISTORY_FILE, node_history)
 
-    baseline_reset = (
-        BASELINE_RESET
-        or (E2E_VERIFY and not previous_stats.get("e2e_enabled", False))
-        or (ONLY_RU_IPS and not previous_stats.get("only_ru_ips", False))
-    )
-    if BASELINE_RESET:
-        logger.warning(
-            "BASELINE_RESET=1: total and per-protocol drop guards are skipped for this run."
-        )
-    elif baseline_reset:
-        logger.info(
-            "Baseline mode changed (E2E/RU-IP filter): total/protocol drop guard is skipped "
-            "for this run to establish a new baseline."
-        )
-
-    verified_healthy = bool(previous_total) and len(verified_nodes) >= previous_total * (1 - MAX_DROP_RATIO)
-    guard_reset = baseline_reset or (
-        verified_healthy
-        and len(alive_nodes) < previous_total * (1 - MAX_DROP_RATIO)
-    )
-    if guard_reset and not baseline_reset:
-        logger.warning(
-            "Published set is smaller due to caps/network, but the verified count is healthy; "
-            "skipping the total/protocol drop guard for this run."
-        )
-
+    baseline_reset = BASELINE_RESET or (E2E_VERIFY and not prev_stats.get("e2e_enabled", False)) or (ONLY_RU_IPS and not prev_stats.get("only_ru_ips", False))
+    guard_reset = baseline_reset or (bool(prev_total) and len(verified_nodes) >= prev_total * (1 - MAX_DROP_RATIO) and len(alive_nodes) < prev_total * (1 - MAX_DROP_RATIO))
     try:
-        enforce_guard(
-            len(alive_nodes),
-            previous_total,
-            protocol_counts=alive_counts,
-            previous_protocols=previous_protocols,
-            allow_baseline_reset=guard_reset,
-        )
+        enforce_guard(len(alive_nodes), prev_total, protocol_counts=alive_counts, previous_protocols=prev_protos, allow_baseline_reset=guard_reset)
         if alive_counts.get("vless", 0) == 0:
             raise GuardError("no vless nodes available for dedicated output")
     except GuardError as exc:
-        logger.error(f"Output guard triggered: {exc}. Previous files are kept unchanged.")
+        logger.error(f"Output guard triggered: {exc}. Previous files kept.")
         return 1
 
-    vless_lines = [format_link(node) for node in alive_nodes if node["scheme"] == "vless"]
-    hy2_lines = [format_link(node) for node in alive_nodes if node["scheme"] == "hysteria2"]
-    all_lines = [format_link(node) for node in alive_nodes]
-
-    write_atomic(VLESS_OUTPUT, vless_lines)
-    write_atomic(HY2_OUTPUT, hy2_lines)
-    write_atomic(ALL_OUTPUT, all_lines)
+    write_atomic(VLESS_OUTPUT, [format_link(n) for n in alive_nodes if n["scheme"] == "vless"])
+    write_atomic(HY2_OUTPUT, [format_link(n) for n in alive_nodes if n["scheme"] == "hysteria2"])
+    write_atomic(ALL_OUTPUT, [format_link(n) for n in alive_nodes])
     write_json_atomic(META_FILE, build_meta(alive_counts, len(alive_nodes), now))
-    logger.info(f"Exported {len(vless_lines)} VLESS nodes -> {VLESS_OUTPUT}")
-    logger.info(f"Exported {len(hy2_lines)} Hysteria2 nodes -> {HY2_OUTPUT}")
-    logger.info(f"Exported {len(all_lines)} all-protocol nodes -> {ALL_OUTPUT}")
-
     elapsed = round(time.monotonic() - started, 1)
-    write_json_atomic(
-        STATS_OUTPUT,
-        {
-            "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "duration_sec": elapsed,
-            "e2e_enabled": E2E_VERIFY,
-            "only_ru_ips": ONLY_RU_IPS,
-            "ru_ip_filter": ru_filter_stats,
-            "sources_total": len(source_urls),
-            "sources_active": len(active_urls),
-            "sources_skipped_quarantined": len(skipped_urls),
-            "sources_with_data": fetched_ok,
-            "raw_links": raw_total,
-            "unique_valid": len(parsed_nodes),
-            "candidates_after_cap": len(candidates),
-            "capped_by_endpoint": cap_counts["endpoint"],
-            "capped_by_published_endpoint": cap_counts.get("published_endpoint", 0),
-            "capped_by_subnet": cap_counts["subnet"],
-            "capped_by_domain": cap_counts["domain"],
-            "rejected_invalid": rejected,
-            "reachable": reachable,
-            "tls_inspection": tls_status,
-            "hysteria2_pinned": sum(
-                1
-                for node in alive_nodes
-                if node["scheme"] == "hysteria2" and node.get("tls_cert_sha256")
-            ),
-            "e2e": e2e_status,
-            "alive": len(alive_nodes),
-            "alive_by_protocol": dict(sorted(alive_counts.items())),
-            "top_countries": dict(sorted(country_counts.items(), key=lambda item: -item[1])[:15]),
-            "latency_ms": overall_latency,
-            "latency_by_protocol": {
-                protocol: latency_summary([node for node in alive_nodes if node["scheme"] == protocol])
-                for protocol in sorted(alive_counts)
-            },
-            "previous_total": previous_total,
-            "baseline_reset": baseline_reset,
-            "stability": stability_stats,
-            "source_stats": source_stats,
-            "checks": {
-                "vless": "xray_e2e" if E2E_VERIFY else "tcp_connect",
-                "trojan": "xray_e2e" if E2E_VERIFY else "tcp_connect",
-                "hysteria2": (
-                    "xray_hysteria2_e2e"
-                    if E2E_VERIFY
-                    else ("quic_v1_handshake_h3" if HAS_AIOQUIC else "unverified")
-                ),
-            },
-        },
-    )
-
-    logger.info(f"Wrote run statistics -> {STATS_OUTPUT} ({elapsed}s)")
-    logger.info(f"Wrote source health -> {SOURCE_HEALTH_FILE}")
-    logger.info(f"Wrote node history -> {NODE_HISTORY_FILE}")
-    logger.info(f"Wrote run history -> {HISTORY_FILE}")
-    logger.info(f"Wrote subscription metadata -> {META_FILE}")
+    hy2_check = ("hysteria2_native_e2e" if native_hy2 else "xray_hysteria2_e2e") if E2E_VERIFY else ("quic_v1_handshake_h3" if HAS_AIOQUIC else "unverified")
+    write_json_atomic(STATS_OUTPUT, {"updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "duration_sec": elapsed, "e2e_enabled": E2E_VERIFY, "only_ru_ips": ONLY_RU_IPS, "reject_ru_exit": REJECT_RU_EXIT, "ru_entry_proxy_enabled": bool(os.getenv("RU_ENTRY_PROXY", "").strip()), "ru_ip_filter": ru_filter_stats, "sources_total": len(source_urls), "sources_active": len(active_urls), "sources_skipped_quarantined": len(skipped_urls), "sources_with_data": fetched_ok, "raw_links": raw_total, "unique_valid": len(parsed_nodes), "poisoned_sni_rejected": poisoned_sni, "candidates_after_cap": len(candidates), "capped_by_endpoint": cap_counts["endpoint"], "capped_by_published_endpoint": cap_counts.get("published_endpoint", 0), "capped_by_subnet": cap_counts["subnet"], "capped_by_domain": cap_counts["domain"], "rejected_invalid": rejected, "reachable": len(candidates), "tls_inspection": tls_status, "hysteria2_pinned": sum(1 for n in alive_nodes if n["scheme"] == "hysteria2" and n.get("tls_cert_sha256")), "e2e": e2e_status, "alive": len(alive_nodes), "alive_by_protocol": dict(sorted(alive_counts.items())), "top_countries": dict(sorted(country_counts.items(), key=lambda i: -i[1])[:15]), "exit_countries": dict(sorted(exit_countries.items(), key=lambda i: -i[1])[:15]), "latency_ms": overall_latency, "speed_kbps": overall_speed, "latency_by_protocol": {p: latency_summary([n for n in alive_nodes if n["scheme"] == p]) for p in sorted(alive_counts)}, "previous_total": prev_total, "baseline_reset": baseline_reset, "stability": stability_stats, "source_stats": source_stats, "checks": {"vless": "xray_e2e" if E2E_VERIFY else "tcp_connect", "trojan": "xray_e2e" if E2E_VERIFY else "tcp_connect", "hysteria2": hy2_check}})
+    logger.info(f"✅ Published {len(alive_nodes)} nodes ({elapsed}s)")
     return 0
 
 

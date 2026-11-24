@@ -1,8 +1,9 @@
 """Batched multi-inbound Xray E2E verification for high-throughput servers.
 
 Runs up to `E2E_BATCH_SIZE` nodes through a single Xray process using dedicated
-HTTP inbound -> outbound routing pairs and native async aiohttp proxy probes.
-Automatically falls back to per-node verification if a batch process fails.
+HTTP inbound -> outbound routing pairs and native async quality probes (exit-IP
+trace + optional download speedtest). Falls back to per-node verification if a
+batch process fails to start.
 """
 
 from __future__ import annotations
@@ -14,13 +15,14 @@ import socket
 import subprocess
 import tempfile
 import time
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import aiohttp
 
-from . import e2e
+from . import e2e, quality
 
 DEFAULT_BATCH_SIZE = max(1, int(os.getenv("E2E_BATCH_SIZE", "32")))
+ProbeResult = Union[Tuple[str, Optional[float]], Tuple[str, Optional[float], Dict[str, object]]]
 
 
 def _allocate_free_ports(count: int) -> List[int]:
@@ -39,11 +41,21 @@ def _allocate_free_ports(count: int) -> List[int]:
             sock.close()
 
 
-def build_batch_xray_config(items: List[Tuple[int, dict, int]]) -> dict:
+def build_batch_xray_config(
+    items: List[Tuple[int, dict, int]],
+    *,
+    ru_entry_proxy: Optional[str] = None,
+) -> dict:
     """Combines multiple single-outbound configs into one routed Xray config."""
     inbounds = []
     outbounds = []
     rules = []
+    shared_upstream: Optional[dict] = None
+
+    proxy_uri = ru_entry_proxy if ru_entry_proxy is not None else os.getenv("RU_ENTRY_PROXY", "")
+    if proxy_uri:
+        shared_upstream = quality.build_upstream_proxy_outbound(proxy_uri, tag="ru-entry")
+
     for idx, single_config, port in items:
         in_tag = f"in-{idx}"
         out_tag = f"out-{idx}"
@@ -58,8 +70,15 @@ def build_batch_xray_config(items: List[Tuple[int, dict, int]]) -> dict:
         )
         outbound = dict(single_config["outbounds"][0])
         outbound["tag"] = out_tag
+        if shared_upstream is not None:
+            stream = dict(outbound.get("streamSettings") or {})
+            stream["sockopt"] = {"dialerProxy": "ru-entry"}
+            outbound["streamSettings"] = stream
         outbounds.append(outbound)
         rules.append({"type": "field", "inboundTag": [in_tag], "outboundTag": out_tag})
+
+    if shared_upstream is not None:
+        outbounds.append(shared_upstream)
 
     return {
         "log": {"loglevel": "error"},
@@ -94,27 +113,16 @@ async def _probe_via_http_proxy(
     port: int,
     timeout: float,
     semaphore: asyncio.Semaphore,
-) -> Tuple[str, Optional[float]]:
-    proxy_url = f"http://127.0.0.1:{port}"
-    async with semaphore:
-        for target in e2e.TARGETS:
-            started = time.perf_counter()
-            try:
-                async with session.get(
-                    target,
-                    proxy=proxy_url,
-                    timeout=aiohttp.ClientTimeout(total=timeout),
-                    allow_redirects=False,
-                ) as resp:
-                    status = str(resp.status)
-                    if status in e2e.SUCCESS_STATUSES:
-                        return "verified", round((time.perf_counter() - started) * 1000, 1)
-                    if status in e2e.RETRY_STATUSES:
-                        continue
-                    return "failed", None
-            except Exception:
-                return "failed", None
-        return "failed", None
+) -> ProbeResult:
+    return await quality.probe_proxy_quality(
+        session, f"http://127.0.0.1:{port}", timeout, semaphore
+    )
+
+
+def _unpack_probe(result: ProbeResult) -> Tuple[str, Optional[float], Dict[str, object]]:
+    if len(result) == 3:
+        return result[0], result[1], result[2]
+    return result[0], result[1], {}
 
 
 def _terminate_process(process: subprocess.Popen) -> None:
@@ -134,10 +142,13 @@ async def _verify_chunk(
     session: aiohttp.ClientSession,
     batch_sem: asyncio.Semaphore,
     probe_sem: asyncio.Semaphore,
-) -> List[Tuple[int, str, Optional[float]]]:
+) -> List[Tuple[int, str, Optional[float], Dict[str, object]]]:
     async with batch_sem:
         ports = _allocate_free_ports(len(chunk))
-        batch_items = [(idx, single_cfg, port) for (idx, _, single_cfg), port in zip(chunk, ports, strict=True)]
+        batch_items = [
+            (idx, single_cfg, port)
+            for (idx, _, single_cfg), port in zip(chunk, ports, strict=True)
+        ]
         config = build_batch_xray_config(batch_items)
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -157,12 +168,14 @@ async def _verify_chunk(
                 if not ready:
                     _terminate_process(process)
 
-                    async def _fallback(idx: int, node: dict) -> Tuple[int, str, Optional[float]]:
+                    async def _fallback(
+                        idx: int, node: dict
+                    ) -> Tuple[int, str, Optional[float], Dict[str, object]]:
                         async with probe_sem:
                             status, latency = await asyncio.to_thread(
                                 e2e.verify_one, node, xray_bin, timeout
                             )
-                            return idx, status, latency
+                            return idx, status, latency, {}
 
                     return list(
                         await asyncio.gather(*[_fallback(idx, node) for idx, node, _ in chunk])
@@ -174,10 +187,11 @@ async def _verify_chunk(
                         for port in ports
                     ]
                 )
-                return [
-                    (idx, status, latency)
-                    for (idx, _, _), (status, latency) in zip(chunk, probes, strict=True)
-                ]
+                unpacked: List[Tuple[int, str, Optional[float], Dict[str, object]]] = []
+                for (idx, _, _), raw_probe in zip(chunk, probes, strict=True):
+                    status, latency, meta = _unpack_probe(raw_probe)
+                    unpacked.append((idx, status, latency, meta))
+                return unpacked
             finally:
                 _terminate_process(process)
 
@@ -189,19 +203,19 @@ async def verify_nodes_batched(
     timeout: float = 8.0,
     batch_size: Optional[int] = None,
 ) -> List[Tuple[dict, str, Optional[float]]]:
-    """Verifies nodes in batches through Xray and annotates each node with e2e status."""
+    """Verifies nodes in batches through Xray and annotates each node with e2e status & quality."""
     xray_bin = e2e.ensure_binaries(xray_bin)
     if not nodes:
         return []
 
     size = max(1, batch_size if batch_size is not None else DEFAULT_BATCH_SIZE)
-    results_map: Dict[int, Tuple[str, Optional[float]]] = {}
+    results_map: Dict[int, Tuple[str, Optional[float], Dict[str, object]]] = {}
     supported: List[Tuple[int, dict, dict]] = []
 
     for idx, node in enumerate(nodes):
         cfg = e2e.build_xray_config(node, 1080)
         if cfg is None:
-            results_map[idx] = ("unsupported", None)
+            results_map[idx] = ("unsupported", None, {})
         else:
             supported.append((idx, node, cfg))
 
@@ -212,7 +226,7 @@ async def verify_nodes_batched(
         probe_sem = asyncio.Semaphore(max(1, concurrency))
 
         connector = aiohttp.TCPConnector(limit=max(32, concurrency * 2))
-        async with aiohttp.ClientSession(connector=connector) as session:
+        async with aiohttp.ClientSession(connector=connector, auto_decompress=False) as session:
             chunk_results = await asyncio.gather(
                 *[
                     _verify_chunk(chunk, xray_bin, timeout, session, batch_sem, probe_sem)
@@ -220,14 +234,20 @@ async def verify_nodes_batched(
                 ]
             )
         for batch in chunk_results:
-            for idx, status, latency in batch:
-                results_map[idx] = (status, latency)
+            for idx, status, latency, meta in batch:
+                results_map[idx] = (status, latency, meta)
 
     ordered: List[Tuple[dict, str, Optional[float]]] = []
     for idx, node in enumerate(nodes):
-        status, latency = results_map[idx]
+        status, latency, meta = results_map[idx]
         node["e2e"] = status
         if latency is not None:
             node["e2e_ms"] = latency
+        if meta.get("exit_country"):
+            node["exit_country"] = meta["exit_country"]
+        if meta.get("speed_kbps") is not None:
+            node["speed_kbps"] = meta["speed_kbps"]
+        if meta.get("fail_reason"):
+            node["e2e_fail_reason"] = meta["fail_reason"]
         ordered.append((node, status, latency))
     return ordered

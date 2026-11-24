@@ -192,7 +192,9 @@ https://sub.example.com/<SUB_KEY>/hy2
 │   ├── wrangler.toml
 │   └── README.md
 ├── .github/
-│   ├── workflows/update.yml
+│   ├── workflows/
+│   │   ├── ci.yml
+│   │   └── update.yml
 │   └── dependabot.yml
 ├── vless_universal.txt          # публичные подписки — намеренно в корне,
 ├── hysteria2.txt                # чтобы старые raw-URL не ломались
@@ -348,24 +350,14 @@ add_header support-url "https://github.com/BarqDev1/vless-aggregator/issues";
 
 ## 🤖 CI
 
-**Workflow:** `.github/workflows/update.yml`
-**Расписание:** каждые **30 минут** (`*/30 * * * *`), плюс `workflow_dispatch` и изменения `config/sources.txt`.
-
-### Test job
-
-1. `ruff check`
-2. `mypy src/vpn_aggregator`
-3. `pytest --cov=vpn_aggregator --cov-fail-under=50`
-4. `pip-audit -r requirements.lock`
-
-### Update job
-
-1. установка Xray **26.10.21**;
-2. `python -m vpn_aggregator`;
-3. проверка сгенерированных файлов тестами;
-4. коммит подписок и `state/`;
-5. при guard-ошибке state всё равно коммитится;
-6. при падении создаётся/обновляется GitHub Issue.
+- **Код (`.github/workflows/ci.yml`):** запускается только при `push` в `main` и `pull_request` по изменениям в `src/`, `tests/`, `pyproject.toml`, `requirements*` и workflows (`ruff check`, `mypy`, `pytest --cov`, `pip-audit`).
+- **Подписки (`.github/workflows/update.yml`):** запускается каждые **30 минут** (`*/30 * * * *`), вручную (`workflow_dispatch`) и при изменениях `config/sources.txt` — сразу выполняет `update` без лишней тестовой джобы:
+  1. установка Xray **26.10.21**;
+  2. `python -m vpn_aggregator`;
+  3. быстрая проверка сгенерированных файлов (`pytest tests/test_outputs.py`);
+  4. коммит подписок и `state/`;
+  5. при guard-ошибке state всё равно коммитится;
+  6. при падении создаётся/обновляется GitHub Issue.
 
 > GitHub `schedule` — **best-effort**: запуск может задержаться или пропасть.
 > Для гарантированных 30 минут используйте внешний `workflow_dispatch`-триггер

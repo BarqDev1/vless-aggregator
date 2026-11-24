@@ -2487,5 +2487,23 @@
     "sources_active": 14,
     "sources_quarantined": 3,
     "timestamp": "2026-11-24T08:04:30+00:00"
+  },
+  {
+    "alive": 149,
+    "delta": 22,
+    "e2e_cached": 204,
+    "e2e_cached_failed": 0,
+    "e2e_failed": 453,
+    "e2e_verified": 34,
+    "held_back": 0,
+    "latency_p50": 776.4,
+    "protocols": {
+      "hysteria2": 7,
+      "vless": 142
+    },
+    "reachable": 823,
+    "sources_active": 17,
+    "sources_quarantined": 0,
+    "timestamp": "2026-11-24T08:45:58+00:00"
   }
 ]

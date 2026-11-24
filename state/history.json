@@ -2452,5 +2452,22 @@
     "sources_active": 15,
     "sources_quarantined": 0,
     "timestamp": "2026-11-23T22:22:24+00:00"
+  },
+  {
+    "alive": 10,
+    "delta": -1,
+    "e2e_cached": 0,
+    "e2e_cached_failed": 0,
+    "e2e_failed": 87,
+    "e2e_verified": 41,
+    "held_back": 28,
+    "latency_p50": 728.9,
+    "protocols": {
+      "vless": 10
+    },
+    "reachable": 134,
+    "sources_active": 15,
+    "sources_quarantined": 0,
+    "timestamp": "2026-11-24T06:11:29+00:00"
   }
 ]
